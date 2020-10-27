@@ -68,6 +68,12 @@
 			<artifactId>jol-core</artifactId>
 			<version>0.13</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.tencentcloudapi</groupId>
+			<artifactId>tencentcloud-sdk-java</artifactId>
+			<version>3.0.93</version>
+		</dependency>
 	</dependencies>
 
 	<build>

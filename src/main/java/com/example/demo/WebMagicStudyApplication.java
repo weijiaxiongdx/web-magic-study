@@ -3,8 +3,6 @@ package com.example.demo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.util.Random;
-
 @SpringBootApplication
 public class WebMagicStudyApplication {
 
@@ -12,7 +10,7 @@ public class WebMagicStudyApplication {
 		SpringApplication.run(WebMagicStudyApplication.class, args);
 
 		ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test29();
+		jol.test30();
 
 
      /*   Random random = new Random();
@@ -33,5 +31,9 @@ public class WebMagicStudyApplication {
 
     /*ProducerConsumer producerConsumer = new ProducerConsumer();
 		producerConsumer.test();*/
+
+
+     /*   TencentCloudApiTest tencentCloudApiTest = new TencentCloudApiTest();
+		tencentCloudApiTest.test2();*/
 	}
 }

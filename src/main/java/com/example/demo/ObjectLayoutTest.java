@@ -5,6 +5,9 @@ import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -46,6 +49,18 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+    // java中运行js程序
+    public void test30(){
+        ScriptEngineManager manager = new ScriptEngineManager();
+        ScriptEngine engine = manager.getEngineByName( "JavaScript" );
+        try {
+            System.out.println("Result: " + engine.eval( "function f() {return 1;}; f() + 1;" ));
+        } catch (ScriptException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     // jdbc 批量插入百万级数据
