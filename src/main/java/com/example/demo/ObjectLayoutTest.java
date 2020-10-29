@@ -4,10 +4,12 @@ package com.example.demo;
 import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.misc.BASE64Decoder;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -50,6 +52,50 @@ public class ObjectLayoutTest {
         }
     };
 
+
+    /**
+     * 升职加薪
+     * base64编码过程
+     * 1.cmd下，通过chcp命令确认当前操作系统的活动代码页(字符集编码别名)，当前做实验的机器为gb2312
+     * 2.根据1中确认的编码，在该编码表中找到每个字符对应的十六进制编码并转为十进制(两个十六部分各转为十进制后相加)
+     *   升：
+     *   十六进制   C9F0     D
+     *   十进制     51696 + 13 = 51709
+     *
+     *   职：
+     *   十六进制   D6B0   0
+     *   十进制    54960 + 0 = 54960
+     *
+     *   加：
+     *   十六进制   BCD0    3
+     *   十进制    48336 + 3 = 48339
+     *
+     *   薪：
+     *   十六进制   D0B0    D
+     *   十进制    53424 + 13 = 53437
+     *
+     * 3.将2中每个十进制转为二进制，升职加薪依次为
+     *   1100100111111101  1101011010110000 1011110011010011 1101000010111101
+     * 4.将3中的二进制按每6位一组进行分组,不足6位末补0（此例补了两个0）
+     *   110010 011111 110111 010110 101100 001011 110011 010011 110100 001011 110100
+     * 5.将4中每6位二进制转为十进制，依此为
+     *   50 31 55 22 44 11 51 19 52 11 52
+     * 6.根据5中的每个十进制依次去base64编码表中找对应的编码
+     *   yf3WsLzT0L0
+     * 7.实际生成的时候还需要是末尾加上两个等号，表示结束，所以升职加薪经过base64编码后的文本为
+     *   yf3WsLzT0L0==
+     * 8.验证如下，对编码后的文本解码
+     *
+     */
+    public void test31() {
+        try {
+            BASE64Decoder decoder = new BASE64Decoder();
+            String str = new String(decoder.decodeBuffer("yf3WsLzT0L0=="),"GB2312");
+            System.out.println(str); // 升职加薪
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     // java中运行js程序
     public void test30(){

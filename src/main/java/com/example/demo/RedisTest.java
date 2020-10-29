@@ -26,7 +26,6 @@ public class RedisTest {
     // redis必须在处理完所有命令前先缓存起所有命令的处理结果。打包的命令越多，缓存消耗内存也越多。所以并不是打包的命令越多越好
     @GetMapping(value = "/test2")
     public void test2(){
-
         long startTime = System.currentTimeMillis();
         List<Object> resultList = redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
             //redisConnection.openPipeline(); //可以调用，也可以不调用
@@ -53,6 +52,6 @@ public class RedisTest {
             redisTemplate.opsForValue().set("F"+i,i+"");
         }
         long endTime = System.currentTimeMillis();
-        System.out.println("耗时: " + (endTime - startTime)); //1000个命令--465ms 100000个命令--8575ms、8433ms
+        System.out.println("耗时: " + (endTime - startTime)); //1000个命令--465ms 100000个命令--8575ms、8433ms、8021ms
     }
 }

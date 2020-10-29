@@ -10,9 +10,4 @@ class WebMagicStudyApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
-	@Test
-	public void test(){
-		System.out.println("222");
-	}
 }
