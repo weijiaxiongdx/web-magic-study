@@ -54,8 +54,29 @@ public class ObjectLayoutTest {
 
 
     /**
-     * 升职加薪
-     * base64编码过程
+     * ResourceBundle读取资源文件
+     */
+    public void test32(){
+        // 默认读取的是系统所使用地区码的配置文件,当前系统默认为zh_CN
+        ResourceBundle resourceBundle = ResourceBundle.getBundle("myconfig");
+        System.out.println("读默认: " + resourceBundle.getString("say.hello"));
+
+        Locale locale2 = new Locale("zh","CN");
+        ResourceBundle resourceBundle2 = ResourceBundle.getBundle("myconfig",locale2);
+        System.out.println("读中文: " + resourceBundle2.getString("say.hello"));
+
+        Locale locale3 = new Locale("en", "US");
+        ResourceBundle resourceBundle3 = ResourceBundle.getBundle("myconfig",locale3);
+        System.out.println("读英文: " + resourceBundle3.getString("say.hello"));
+
+        ResourceBundle resourceBundle4 = ResourceBundle.getBundle("config/myconfig22");
+        System.out.println("读默认222: " + resourceBundle4.getString("say.hello"));
+
+    }
+
+
+    /**
+     * base64编码过程 升职加薪
      * 1.cmd下，通过chcp命令确认当前操作系统的活动代码页(字符集编码别名)，当前做实验的机器为gb2312
      * 2.根据1中确认的编码，在该编码表中找到每个字符对应的十六进制编码并转为十进制(两个十六部分各转为十进制后相加)
      *   升：
@@ -96,6 +117,7 @@ public class ObjectLayoutTest {
             e.printStackTrace();
         }
     }
+
 
     // java中运行js程序
     public void test30(){
