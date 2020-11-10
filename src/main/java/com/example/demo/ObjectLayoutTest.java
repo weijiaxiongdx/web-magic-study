@@ -1,6 +1,10 @@
 package com.example.demo;
 
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.apache.curator.retry.RetryNTimes;
 import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +55,59 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+    // zookeeper Curator客户端-分布式锁
+    public void test33(){
+        String ZK_PATH = "/zktest3";
+        String ZK_LOCK_PATH = "/zktest/lock";
+        CuratorFramework client = CuratorFrameworkFactory.newClient("127.0.0.1:2181",new RetryNTimes(10, 5000));
+        client.start();
+
+        try {
+            //client.create().creatingParentsIfNeeded().forPath(ZK_PATH,"wjx3".getBytes());
+            //System.out.println(client.getData().forPath(ZK_PATH).toString());
+            //System.out.println("=============");
+            // 获取根下的所有节点
+            //System.out.println(client.getChildren().forPath("/"));
+
+            // 修改某个节点的数据
+            //client.setData().forPath("/zktest2","wjx2update222".getBytes());
+
+            // 删除某个节点
+            //client.delete().forPath("/zktest");
+
+            // 可重入、公平
+            InterProcessMutex lock = new InterProcessMutex(client, ZK_LOCK_PATH);
+            for (int i = 0; i < 3; i++) {
+                Runnable r = ()->{
+                    try {
+                        lock.acquire();
+                        if(lock.isAcquiredInThisProcess()){
+                            System.out.println("线程 " + Thread.currentThread().getName() + "获取锁成功");
+                            Thread.sleep(10000);
+                        } else {
+                            System.out.println("线程 " + Thread.currentThread().getName() + "获取锁失败");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            lock.release();
+                            System.out.println("线程 " + Thread.currentThread().getName() + "释放了锁");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                Thread thread = new Thread(r);
+                thread.start();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
     /**

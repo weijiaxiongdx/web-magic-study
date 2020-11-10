@@ -11,3 +11,7 @@ spring:
     timeout: 3000
     poolMaxTotal: 10
     poolMaxIdle: 10
+
+
+server:
+  port: 8081
