@@ -61,7 +61,7 @@ public class ObjectLayoutTest {
     public void test33(){
         String ZK_PATH = "/zktest3";
         String ZK_LOCK_PATH = "/zktest/lock";
-        CuratorFramework client = CuratorFrameworkFactory.newClient("127.0.0.1:2181",new RetryNTimes(10, 5000));
+        CuratorFramework client = CuratorFrameworkFactory.newClient("127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183",new RetryNTimes(10, 5000));
         client.start();
 
         try {
@@ -72,7 +72,7 @@ public class ObjectLayoutTest {
             //System.out.println(client.getChildren().forPath("/"));
 
             // 修改某个节点的数据
-            //client.setData().forPath("/zktest2","wjx2update222".getBytes());
+            client.setData().forPath("/node1Create","777".getBytes());
 
             // 删除某个节点
             //client.delete().forPath("/zktest");
