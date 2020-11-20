@@ -1,0 +1,7 @@
+rocketmq双主双主集群架构搭建+客户端例子测试跑通(一台windows服务器、一台linux服务器)
+
+1.启动nameserver
+nohup sh mqnamesrv &
+
+2.启动broker,rocketmq的bin目录下执行(不同的配置文件启动多个实例)
+nohup sh mqbroker -c /home/test/rocketmq/conf/2m-2s-sync/broker-a.properties &
