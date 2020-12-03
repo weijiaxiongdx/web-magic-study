@@ -10,7 +10,7 @@ public class WebMagicStudyApplication {
 		SpringApplication.run(WebMagicStudyApplication.class, args);
 
 		ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test33();
+		jol.test27();
 
      /*   Random random = new Random();
         int capacity = 100000;

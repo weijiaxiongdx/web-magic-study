@@ -1,6 +1,7 @@
 package com.example.demo;
 
 
+import oracle.jrockit.jfr.jdkevents.ThrowableTracer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -8,6 +9,7 @@ import org.apache.curator.retry.RetryNTimes;
 import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.awt.windows.ThemeReader;
 import sun.misc.BASE64Decoder;
 
 import javax.script.ScriptEngine;
@@ -47,6 +49,8 @@ public class ObjectLayoutTest {
     Boolean flag = true;
     Random random = new Random();
     private int ticket = 100;
+    AtomicInteger tickets = new AtomicInteger(100);
+
 
     Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
         @Override
@@ -55,6 +59,26 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+    // AtomicInteger compareAndSet 卖票问题
+    public void test34(){
+       Runnable task = ()->{
+            while (tickets.get() > 0){
+                int current = tickets.get();
+                int next = current - 1;
+                if(tickets.compareAndSet(current,next)){
+                    System.out.println("线程" + Thread.currentThread().getName() + "买到了第" + atomicInteger.incrementAndGet() + "票");
+                }
+            }
+            System.out.println(Thread.currentThread().getName() + " :票已经卖完了");
+        };
+
+       Thread t1 = new Thread(task);
+       Thread t2 = new Thread(task);
+       t1.start();
+       t2.start();
+    }
 
 
     // zookeeper Curator客户端-分布式锁
@@ -229,7 +253,46 @@ public class ObjectLayoutTest {
         }
     }
 
-    // ReentrantReadWriteLock
+
+    // ReentrantReadWriteLock 读读并发
+    public void test35(){
+        ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
+        ReentrantReadWriteLock.ReadLock readLock = reentrantReadWriteLock.readLock();
+        ReentrantReadWriteLock.WriteLock writeLock = reentrantReadWriteLock.writeLock();
+        logger.info("主线程开始");
+        new Thread(()->{
+            logger.info(Thread.currentThread().getName() + " 线程开始获取读锁");
+            readLock.lock();
+            for (int j = 0; j < 10; j++) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info(Thread.currentThread().getName() + " 线程执行业务中..." + j);
+            }
+            readLock.unlock();
+            logger.info(Thread.currentThread().getName() + " 线程释放了读锁");
+        }).start();
+
+
+        new Thread(()->{
+            logger.info(Thread.currentThread().getName() + " 线程开始获取读锁");
+            readLock.lock();
+            for (int j = 0; j < 10; j++) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info(Thread.currentThread().getName() + " 线程执行业务中..." + j);
+            }
+            readLock.unlock();
+            logger.info(Thread.currentThread().getName() + " 线程释放了读锁");
+        }).start();
+    }
+
+    // ReentrantReadWriteLock 读写不能并发
     public void test28(){
         ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
         ReentrantReadWriteLock.ReadLock readLock = reentrantReadWriteLock.readLock();
@@ -237,6 +300,12 @@ public class ObjectLayoutTest {
 
         logger.info("主线程开始");
         new Thread(()->{
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             logger.info("开始获取读锁");
             readLock.lock();
             for (int j = 0; j < 10 ; j++) {
@@ -245,7 +314,7 @@ public class ObjectLayoutTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                System.out.println("t2线程: " + j);
+                System.out.println("t2线程获取读锁: " + j);
             }
             readLock.unlock();
             logger.info("读锁释放了");
@@ -262,10 +331,11 @@ public class ObjectLayoutTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                System.out.println("t3线程: " + j);
+                System.out.println("t3线程获取写锁: " + j);
             }
 //            readLock.unlock();
             writeLock.unlock();
+            logger.info("写锁释放了");
         },"t3").start();
     }
 
