@@ -1,7 +1,6 @@
 package com.example.demo;
 
 
-import oracle.jrockit.jfr.jdkevents.ThrowableTracer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -9,13 +8,15 @@ import org.apache.curator.retry.RetryNTimes;
 import org.openjdk.jol.info.ClassLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.awt.windows.ThemeReader;
 import sun.misc.BASE64Decoder;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -59,6 +60,55 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+    // 快捷键
+    public void test36(){
+        String s = null;
+        //1. flag.if
+        if (flag) {
+
+        }
+
+        //2. flag.else
+        if (!flag) {
+
+        }
+
+        //3. s.null
+        if (s == null) {
+
+        }
+
+        //4. s.notnull 或 s.nn
+        if (s != null) {
+
+        }
+
+        //5. s.switch
+        switch (s) {
+
+        }
+
+        //6. flag.while
+        while (flag) {
+
+        }
+
+        //7. ObjectLayoutTest.new
+        new ObjectLayoutTest();
+
+        //8. flag.sout
+        System.out.println(flag);
+
+        //9. 将光标放在“”中间，然后按Alt+Enter，出来如下提示后，选择Inject language or reference
+        //然后点击Enter进入后，选择或搜索JSON后回车。然后继续按Alt+Enter，出来如下提示后，我们选择Edit JSON Fragment
+        //回车后，会弹出一个输入框。我们在输入框中写我们的JSON就可以了，它会自动帮我们转义。
+        String json = "{\"name\": \"zhangsan\",\"age\": 20}";
+        System.out.println(json); //{"name": "zhangsan","age": 20}
+
+        //查看当前类所有的方法 Ctrl+F12
+    }
 
 
     // AtomicInteger compareAndSet 卖票问题
@@ -347,7 +397,7 @@ public class ObjectLayoutTest {
         writeLock.lock();
         logger.info("get write lock");
 
-        readLock.lock(); //从写锁降级成读锁，并不会自动释放当前线程获取的写锁，仍然需要显示的释放，否则别的线程永远也获取不到写锁
+        readLock.lock(); //从写锁降级成读锁(写锁释放后降级为读锁)，并不会自动释放当前线程获取的写锁，仍然需要显示的释放，否则别的线程永远也获取不到写锁
         logger.info("get read lock");
 
 
@@ -870,6 +920,7 @@ public class ObjectLayoutTest {
         }
     }
 
+    // 活锁
     public void test12(){
         new Thread(()->{
             while (c > 0){
@@ -899,6 +950,14 @@ public class ObjectLayoutTest {
     }
 
     //Synchronized
+    /**
+     * 检测死锁方法
+     * 1.jconsole.exe 双击->选择对应的进程->线程tab->点击检测死锁
+     * 2.jstack.exe
+     *       2.1 cmd下通过jps命令获取对应java进程的进程id
+     *       2.2 cmd下通过jstack -l 进程id > D:dead.txt命令获取对应死锁信息并输出到对应的文件中
+     * 3.java自带的工具类 ThreadMXBean
+     */
     public void test11(){
         Thread t1 = new Thread(()->{
             synchronized (aLock){
@@ -926,6 +985,25 @@ public class ObjectLayoutTest {
             }
         },"t2");
         t2.start();
+
+
+
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
+        //获取到所有死锁线程的id
+        long[] deadlockedThreads = mbean.findDeadlockedThreads();
+        //遍历数组获取所有的死锁线程详细堆栈信息并打印
+        for (long pid : deadlockedThreads) {
+            //此方法获取不带有堆栈跟踪信息的线程数据
+            //hreadInfo threadInfo = mbean.getThreadInfo(pid);
+            //第二个参数指定转储多少项堆栈跟踪信息,设置为Integer.MAX_VALUE可以转储所有的堆栈跟踪信息
+            ThreadInfo threadInfo = mbean.getThreadInfo(pid,Integer.MAX_VALUE);
+            System.out.println(threadInfo);
+        }
     }
 
     //LongAdder
