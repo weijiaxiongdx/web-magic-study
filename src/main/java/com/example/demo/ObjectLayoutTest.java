@@ -6,6 +6,8 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryNTimes;
 import org.openjdk.jol.info.ClassLayout;
+import org.redisson.Redisson;
+import org.redisson.api.RLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.BASE64Decoder;
@@ -60,6 +62,28 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+
+    // Redisson-分布式锁，测试方法：idea允许多个实例同时运行->分别启动多个实例(需要改端口)->观察输出日志
+    public void test37(){
+        Redisson redisson = (Redisson) Redisson.create();
+        RLock rLock = redisson.getLock("wjx_lock");
+
+        System.out.println("开始获得锁");
+        rLock.lock();
+        System.out.println(Thread.currentThread().getName() + "线程获得了锁");
+        for (int j = 0; j < 500; j++) {
+            System.out.println(Thread.currentThread().getName() + "线程输出: "+ j);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        rLock.unlock();
+        System.out.println(Thread.currentThread().getName() + "线程释放了锁");
+    }
 
 
     // 快捷键

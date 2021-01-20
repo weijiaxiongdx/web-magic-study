@@ -117,7 +117,11 @@
 			<artifactId>fastjson</artifactId>
 			<version>1.2.44</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.redisson</groupId>
+			<artifactId>redisson</artifactId>
+			<version>3.14.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>
