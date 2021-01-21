@@ -10,6 +10,8 @@ import org.redisson.Redisson;
 import org.redisson.api.RLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import sun.misc.BASE64Decoder;
 
 import javax.script.ScriptEngine;
@@ -31,6 +33,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.LongStream;
 
+@Component
 public class ObjectLayoutTest {
 
     protected static Logger logger = LoggerFactory.getLogger(ObjectLayoutTest.class);
@@ -54,6 +57,15 @@ public class ObjectLayoutTest {
     private int ticket = 100;
     AtomicInteger tickets = new AtomicInteger(100);
 
+    @Value("${wjx.str}")
+    private String str;
+
+    @Value("${wjx.specialStr}")
+    private String specialStr;
+
+    @Value("${wjx.specialStr2}")
+    private String specialStr2;
+
 
     Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
         @Override
@@ -63,6 +75,12 @@ public class ObjectLayoutTest {
         }
     };
 
+
+    public void test38(){
+        System.out.println("普通字符串: " + str);
+        System.out.println("没有转义的带有特殊字符的字符串: " + specialStr);
+        System.out.println("转义了特殊字符的字符串: " + specialStr);
+    }
 
 
     // Redisson-分布式锁，测试方法：idea允许多个实例同时运行->分别启动多个实例(需要改端口)->观察输出日志

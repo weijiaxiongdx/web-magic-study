@@ -6,12 +6,36 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   redis:
-    host: 127.0.0.1
-    port: 6379
-    timeout: 3000
-    poolMaxTotal: 10
-    poolMaxIdle: 10
-
+    #host: 127.0.0.1
+    #port: 6379
+    #timeout: 3000
+    #poolMaxTotal: 10
+    #poolMaxIdle: 10
+    cluster:
+      max-redirects: 3 #获取失败 最大重定向次数
+      nodes: 127.0.0.1:7000,127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003,127.0.0.1:7004,127.0.0.1:7005
+        #- 127.0.0.1:7000
+        #- 127.0.0.1:7001
+        #- 127.0.0.1:7002
+        #- 127.0.0.1:7003
+        #- 127.0.0.1:7004
+        #- 127.0.0.1:7005
+      lettuce:
+        max-active: 1000  #连接池最大连接数（使用负值表示没有限制）
+        max-idle: 10 # 连接池中的最大空闲连接
+        min-idle: 5 # 连接池中的最小空闲连接
+        max-wait: -1ms # 连接池最大阻塞等待时间（使用负值表示没有限制）
 
 server:
   port: 8081
+
+
+wjx:
+  str: 字符串可以不加引号
+  specialStr: "双引号直接输出\n特殊字符"
+  specialStr2: '单引号可以转义\n特殊字符'
+  list:
+    - address1
+    - address2
+    - address3
+

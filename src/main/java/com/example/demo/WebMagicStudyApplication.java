@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -7,10 +8,23 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class WebMagicStudyApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(WebMagicStudyApplication.class, args);
+        /**
+         * 第一种启动方式
+         */
+		//SpringApplication.run(WebMagicStudyApplication.class, args);
 
-		ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test37();
+
+        /**
+         * 第二种启动方式
+         *   禁止输出启动springboot启动标识
+         */
+        SpringApplication application = new SpringApplication(WebMagicStudyApplication.class);
+        application.setBannerMode(Banner.Mode.OFF);
+		application.setRegisterShutdownHook(false);
+		ApplicationContextUtil.setApplicationContext(application.run(args));
+
+		//ObjectLayoutTest jol = new ObjectLayoutTest();
+		//jol.test38();
 
      /*   Random random = new Random();
         int capacity = 100000;
