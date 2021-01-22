@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 5.cmd下执行以下命令检测集群是否创建成功(master-7000目录下)
  *   redis-trib.rb check 127.0.0.1:7000命令
  * 6.cmd下执行以下命令，启动客户端(master-7000目录下)
- *   -c是必须要的，表示以集群方式启动，如果没加，则执行set等命令时会报错
+ *   -c是必须要的，表示以集群方式启动，如果没加，则执行set等命令时会报错(需手动重定向，加了后可自动重定向)
  *   redis-cli.exe -c -h 127.0.0.1 -p 7000
  *
  */

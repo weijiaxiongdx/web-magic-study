@@ -1,0 +1,48 @@
+# springboot启动时会扫描以下位置的application.properties、application.xml、application.yml、application.yaml作为默认的配置文件
+# 加载的优先级顺序是从上向下加载，并且所有的文件都会被加载，高优先级的内容会覆盖低优先级的内容，形成互补配置
+
+wjx:
+  str: classpath下的config目录下配置文件的优先级高于classpath下的配置文件的优先级
+  xin: config下的独有属性
+
+#file:./config/application.properties
+#file:./config/application.xml
+#file:./config/application.yml
+#file:./config/application.yaml
+
+#file:./application.properties
+#file:./application.xml
+#file:./application.yml
+#file:./application.yaml
+
+#classpath:/config/application.properties
+#classpath:/config/application.xml
+#classpath:/config/application.yml
+#classpath:/config/application.yaml
+
+#classpath:/application.properties
+#classpath:/application.xml
+#classpath:/application.yml
+#classpath:/application.yaml
+
+#file:./config/application-default.properties
+#file:./config/application-default.xml
+#file:./config/application-default.yml
+#file:./config/application-default.yaml
+
+#file:./application-default.properties
+#file:./application-default.xml
+#file:./application-default.yml
+#file:./application-default.yaml
+
+#classpath:/config/application-default.properties
+#classpath:/config/application-default.xml
+#classpath:/config/application-default.yml
+#classpath:/config/application-default.yaml
+
+#classpath:/application-default.properties
+#classpath:/application-default.xml
+#classpath:/application-default.yml
+#classpath:/application-default.yaml
+
+
