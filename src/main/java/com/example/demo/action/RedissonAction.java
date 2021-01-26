@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
  *   -c是必须要的，表示以集群方式启动，如果没加，则执行set等命令时会报错(需手动重定向，加了后可自动重定向)
  *   redis-cli.exe -c -h 127.0.0.1 -p 7000
  *
+ *
+ *  集群不支持任何跨slot的命令，multi/exec?????
+ *
  */
 @RestController
 @RequestMapping(value = "/redisson")

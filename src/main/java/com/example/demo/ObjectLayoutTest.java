@@ -96,7 +96,7 @@ public class ObjectLayoutTest {
             bf.put(j);
         }
         Long endTime = System.currentTimeMillis();
-        System.out.println("存入1千万耗时: " + (endTime - startTime)/1000 + "秒");
+        System.out.println("存入1千万耗时: " + (endTime - startTime) + "毫秒");
     }
 
     public void test38(){
