@@ -1,6 +1,8 @@
 package com.example.demo;
 
 
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -75,6 +77,27 @@ public class ObjectLayoutTest {
         }
     };
 
+
+    /**
+     * BloomFilter原理
+     *     底层数据结构是位数组，当存入元素时，会使用几个不同的hash函数对当前待存入的元素分别进行hash运算(例如3个hash函数)，得出3个hash值，
+     *     根据此3个hash值找到位数组对应的下标，然后把这3个位置的值都设置为1（初始都为0）。当判断元素是否在布隆过滤器中时，使用之前几个同样的
+     *     hash函数对当前元素进行hash并得出hash值（位数组位置），然后判断位数组中对应位置的值是否都为1，若都为1，则元素存在于布隆过滤器中，只
+     *     要有一个为0则元素不存于布隆过滤器中。
+     *     因为存在hash碰撞，所以会有误判,即布隆过滤器判断返回true,可能布隆过滤器并没有此元素
+     *
+     *     缺点:存在误判
+     *         不能删除，可通过计数器布隆过滤器解决(有开源实现,github)
+     */
+    public void test39(){
+        BloomFilter<Integer> bf = BloomFilter.create(Funnels.integerFunnel(),100000,0.02);
+        Long startTime = System.currentTimeMillis();
+        for (int j = 0; j < 10000000; j++) {
+            bf.put(j);
+        }
+        Long endTime = System.currentTimeMillis();
+        System.out.println("存入1千万耗时: " + (endTime - startTime)/1000 + "秒");
+    }
 
     public void test38(){
         System.out.println("普通字符串: " + str);
