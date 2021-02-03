@@ -196,6 +196,9 @@ public class ObjectLayoutTest {
     }
 
 
+    /**
+     * 启动集群时，前面两个会报错，当启动完所有服务器后就不会报错了
+     */
     // zookeeper Curator客户端-分布式锁
     public void test33(){
         String ZK_PATH = "/zktest3";
@@ -211,7 +214,7 @@ public class ObjectLayoutTest {
             //System.out.println(client.getChildren().forPath("/"));
 
             // 修改某个节点的数据
-            client.setData().forPath("/node1Create","777".getBytes());
+            //client.setData().forPath("/node1Create","777".getBytes());
 
             // 删除某个节点
             //client.delete().forPath("/zktest");
