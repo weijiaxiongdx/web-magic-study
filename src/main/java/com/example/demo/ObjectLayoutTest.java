@@ -77,6 +77,59 @@ public class ObjectLayoutTest {
         }
     };
 
+    /**
+     * return 返回值测试
+     */
+    public void test43(){
+        System.out.println("最终的返回值为: " + test41());
+    }
+
+
+
+    /**
+     * 对于基本数据类型，在finally块中改变return的值对返回值没有影响，而对引用类型的数据就会有影响
+     */
+    public StringBuffer test41(){
+        StringBuffer s = new StringBuffer("hello");
+        try {
+            System.out.println("执行了 try");
+            int i = 1/0;
+            return s;
+        } catch (Exception e) {
+            System.out.println("执行了 catch");
+            s.append("未来");// 会改变最终返回值
+            return s;
+        } finally {
+            s.append("world"); // 会改变最终返回值
+            System.out.println("执行了 finally");
+        }
+    }
+
+
+    /**
+     * return 返回值测试
+     * 如果try语句里有return，那么代码的行为如下
+     *   1.如果有返回值，就把返回值保存到局部变量中
+     *   2.执行jsr指令跳到finally语句里执行
+     *   3.执行完finally语句后，返回之前保存在局部变量表里的值
+     *   也就是先执行try -> 执行计算return的值 ->跳转到finally  ->返回try中的return
+     *   如果finally中有return语句也就不会执行最后一步了, 看起来也就是try的返回值被覆盖了
+     *   其实这里并不是覆盖, 而是执行顺序变更导致的
+     */
+    public String test40(){
+        try{
+            System.out.println("执行了 try");
+            //int i = 1/0;
+            return "1";
+        }catch (Exception e){
+            System.out.println("执行了 catch");
+            return "2";//进到此处时，如果finally中没有返回值，则直接返回该处的值，不返回try中的返回值。如果finally中有返回值则直接返回finally中的返回值
+        } finally {
+            System.out.println("执行了 finally");
+            return "3"; // 有返回则直接返回该处的返回值,不回返回try或catch中的返回值
+        }
+    }
+
 
     /**
      * BloomFilter原理
