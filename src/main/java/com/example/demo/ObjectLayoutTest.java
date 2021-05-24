@@ -1417,7 +1417,29 @@ public class ObjectLayoutTest {
         private String name;
 
         private String address;
-//
+
+        private boolean flag;
+
+        private byte b;
+
+        private char c;
+
+        private short s;
+
+        private int id2;
+
+        private long l;
+
+        private float f;
+
+        private double d;
+
+        @Override
+        protected Object clone() throws CloneNotSupportedException {
+            return super.clone();
+        }
+
+        //
 //        public Integer getId() {
 //            return id;
 //        }
