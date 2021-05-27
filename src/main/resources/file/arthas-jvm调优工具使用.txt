@@ -1,0 +1,59 @@
+Linux(arthas-boot.jar包方式)
+1.使用wget命令下载arthas-boot.jar
+    wget https://alibaba.github.io/arthas/arthas-boot.jar
+
+2.启动arthas-boot.jar
+    执行java -jar arthas-boot.jar命令，输出以下结果
+
+    [INFO] Found existing java process, please choose one and input the serial number of the process, eg : 1. Then hit ENTER.
+    * [1]: 13483 /data/procedure/keeyomi/admin/keeyomi-admin-0.0.1-SNAPSHOT.jar
+      [2]: 10465 /data/procedure/mall/mall_serve_admin/mall_serve_admin.jar
+      [3]: 12904 /data/procedure/mall/market-service-wap/market-service-wap.jar
+      [4]: 5642 ./mall_file_system/mall_file_system.jar
+      [5]: 10506 /data/procedure/mall/mall_web_wap/mall_web_wap.jar
+      [6]: 29995 /data/procedure/mall/market-service-admin/market-service-admin.jar
+      [7]: 22702 /data/procedure/mall/mall_serve_common/mall_serve_common.jar
+      [8]: 13424 /data/procedure/keeyomi/api/keeyomi-api-0.0.1-SNAPSHOT.jar
+      [9]: 10386 /data/procedure/mall/mall_serve_task/mall_serve_task.jar
+      [10]: 10547 /data/procedure/mall/mall_web_admin/mall_web_admin.jar
+      [11]: 13363 /data/procedure/keeyomi/job/keeyomi-job-0.0.1-SNAPSHOT.jar
+      [12]: 10425 /data/procedure/mall/mall_serve_wap/mall_serve_wap.jar
+      [13]: 22265 ./admin/operate-center-web-admin.jar
+
+
+3.在2中输出的界面中，输入要绑定的进程的序号并回车
+
+4.常用命令
+  4.1 列出包目录下所有类(所有jvm已加载的类)
+      执行sc com.lh.web.*命令，输出以下结果
+
+      com.lh.web.KeeyomiAdmin
+      com.lh.web.KeeyomiAdmin$$EnhancerBySpringCGLIB$$637681a
+      com.lh.web.KeeyomiAdmin$$EnhancerBySpringCGLIB$$637681a$$FastClassBySpringCGLIB$$1f92e964
+      com.lh.web.KeeyomiAdmin$$FastClassBySpringCGLIB$$7c0d5011
+      com.lh.web.annotation.ThirdPartyAuth
+      com.lh.web.aspect.IdempotentAspect
+      com.lh.web.aspect.IdempotentAspect$$EnhancerBySpringCGLIB$$2994f7d1
+      com.lh.web.aspect.SysLogAspect
+      com.lh.web.aspect.WebLogAspect
+      com.lh.web.config.CorsConfig
+      com.lh.web.config.CorsConfig$$EnhancerBySpringCGLIB$$510aec5
+
+  4.2 列出某个类的详细信息(com.lh.web包下的KeeyomiAdmin类为例)
+      sc -d com.lh.web.KeeyomiAdmin
+
+  4.3 反编译某个类(com.lh.web包下的KeeyomiAdmin类为例,改了代码后验证是否是最新代码，一看便知)
+      jad com.lh.web.KeeyomiAdmin
+
+  4.4 列出当前进程的所有线程信息
+      thread
+
+  4.5 列出某个类的所有方法信息(com.lh.web包下的KeeyomiAdmin类为例)
+      sm com.lh.web.KeeyomiAdmin
+
+  4.6 列出jvm中所有类加载器
+      classloader
+
+  4.7 加载外部的.class文件，然后覆盖 jvm已加载的类。注意，这个命令不一定都能覆盖成功，如果添加了新的field，就不会加载成功。
+      动态更新代码，不用重启jvm
+
