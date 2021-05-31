@@ -1,1 +1,12 @@
-解压dump.tgz文件，将解压后的文件转换成hprof文件，然后使用JProfiler工具打开并分析
+一、linux导出dump文件时，错误"-bash: jmap: command not found"解决方式如下
+      1.执行yum -y whatprovides '*/jmap' ,查看可以使用的版本
+      2.执行yum install java-1.8.0-openjdk-devel-1.8.0.292.b10-1.el7_9.i686 ,安装开发环境
+      "java-1.8.0-openjdk-devel-1.8.0.292.b10-1.el7_9.i686"为第1步中的某个版本
+
+二、执行 jmap -dump:file=/usr/wjx/keeyomi-admin.dump 13483,生成dump文件
+    如果线上环境内存很大，jmap执行期间，对进程会产生很大影响，甚至卡顿,怎么办?
+    1.做了高可用，暂时一台服务停一会没多大关系
+    2.在测试环境进行压测,模拟出当前问题
+    3.设置-XX:+HeapDumpOnOutOfMemoryError参数，在内存溢出时自动生成dump文件
+
+三、下载dump文件到windows， 解压dump.tgz文件，将解压后的文件转换成hprof文件，然后使用JProfiler工具打开并分析

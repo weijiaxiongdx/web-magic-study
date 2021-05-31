@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -39,6 +40,10 @@ import java.util.stream.LongStream;
 public class ObjectLayoutTest {
 
     protected static Logger logger = LoggerFactory.getLogger(ObjectLayoutTest.class);
+
+    private final Object leftLock = new Object();
+    private final Object rightLock = new Object();
+
     Object lock = new Object();
 
     Object aLock = new Object();
@@ -76,6 +81,110 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+
+    /**
+     * 线程饥饿问题： 无法访问所需要的资源导致不能继续执行时，就发生了饥饿
+     * 要避免使用线程优先级，因为这会增加平台依赖性，并可能导致活跃性问题(饥饿)
+     *
+     * 线程活锁问题： 当多个相互协作的线程对彼此进行响应从而修改各自的状态，并使用任何一个线程无法继续执行时，就发生了活锁
+     * 解决方案：在重试机制中引入随机性。在并发应用程序中，通过等待随机长度的时间和回退，可以有效的避免活锁的发生
+     */
+    public void test47(){
+
+    }
+
+
+    /**
+     * 动态锁顺序死锁-并发编程实战
+     * 出现死锁的原因: 转账案例，两个线程同时调用方法，一个A向B转账(先加fromLock锁)，另一个B向A转账(先加toLock)
+     * 定义锁的顺序,以最小代价换来了最大的安全性
+     */
+    public void test46(Object fromLock , Object toLock , BigDecimal money){
+        /**
+         * 根据内存地址获取的hash值
+         * 无论给定的x对象是否覆盖了hashCode()方法，都会调用默认的hashCode()方法返回hashCode,如果x == null, 返回0。
+         * 这个默认的hashCode()方法就是Object类中的hashCode方法
+         */
+        int fromHash = System.identityHashCode(fromLock);
+        int toHash = System.identityHashCode(toLock);
+
+        if(fromHash < toHash){
+            synchronized (fromLock){
+                synchronized (toLock){
+                    // doSomething
+                }
+            }
+        } else if (fromHash > toHash){
+            synchronized (toLock){
+                synchronized (fromLock){
+                    // doSomething
+                }
+            }
+        } else {
+            /**
+             * 对象散列值相同时，使用“加时赛”锁来避免死锁
+             */
+            synchronized (lock){
+                synchronized (fromLock){
+                    synchronized (toLock){
+                        // doSomething
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    /**
+     * 动态锁顺序死锁-并发编程实战
+     * 出现死锁的原因: 转账案例，两个线程同时调用方法，传参顺序不一样，一个A向B转账(先加fromLock锁)，另一个B向A转账(先加toLock)
+     * 解决方案：1.定义锁的顺序，见test46案例
+     *          2.使用Lock中的tryLock
+     */
+    public void test45(Object fromLock , Object toLock , BigDecimal money){
+        synchronized (fromLock){
+            synchronized (toLock){
+                // doSomething
+            }
+        }
+    }
+
+    /**
+     * 简单锁顺序死锁-并发编程实战
+     * 如果所有线程以固定的顺序来获取锁，那么在程序中就不会出现锁顺序死锁问题
+     */
+    public void test44(){
+        new Thread(()->{
+            synchronized (leftLock){
+/*
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }*/
+
+                System.out.println("线程t1获取了leftLock: " + ClassLayout.parseInstance(leftLock).toPrintable());
+                synchronized (rightLock){
+                    System.out.println("线程t1获取了rightLock: " + ClassLayout.parseInstance(rightLock).toPrintable());
+                    System.out.println("线程t1执行了...");
+                }
+            }
+        },"t1").start();
+
+        new Thread(()->{
+            synchronized (rightLock){
+                System.out.println("线程t2获取了rightLock: "+ ClassLayout.parseInstance(rightLock).toPrintable());
+                synchronized (leftLock){
+                    System.out.println("线程t2获取了leftLock: "+ ClassLayout.parseInstance(leftLock).toPrintable());
+                    System.out.println("线程t2执行了...");
+                }
+            }
+        },"t2").start();
+    }
+
 
     /**
      * return 返回值测试

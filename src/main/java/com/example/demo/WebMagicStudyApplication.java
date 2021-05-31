@@ -24,7 +24,7 @@ public class WebMagicStudyApplication {
 		ApplicationContextUtil.setApplicationContext(application.run(args));
 
 		ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test2();
+		jol.test44();
 
      /*   Random random = new Random();
         int capacity = 100000;

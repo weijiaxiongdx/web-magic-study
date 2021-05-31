@@ -2,7 +2,7 @@ Linux(arthas-boot.jar包方式)
 1.使用wget命令下载arthas-boot.jar
     wget https://alibaba.github.io/arthas/arthas-boot.jar
 
-2.启动arthas-boot.jar
+2.启动arthas-boot.jar(在线调优工具)
     执行java -jar arthas-boot.jar命令，输出以下结果
 
     [INFO] Found existing java process, please choose one and input the serial number of the process, eg : 1. Then hit ENTER.
@@ -54,6 +54,10 @@ Linux(arthas-boot.jar包方式)
   4.6 列出jvm中所有类加载器
       classloader
 
-  4.7 加载外部的.class文件，然后覆盖 jvm已加载的类。注意，这个命令不一定都能覆盖成功，如果添加了新的field，就不会加载成功。
-      动态更新代码，不用重启jvm
+  4.7 加载外部的.class文件，然后覆盖 jvm已加载的类(动态更新代码，不用重启jvm)。注意，这个命令不一定都能覆盖成功，
+      如果新的class文件中添加、删除了属性或修改了方法名，就不会覆盖成功(一般在应急的时候使用,然后在下一版本把bug改掉)。
+      redefine /root/tt.class
+
+  4.8 生成内存快照(heapdump会生产FullGC)
+      heapdump --live /usr/wjx/dump.hprof
 
