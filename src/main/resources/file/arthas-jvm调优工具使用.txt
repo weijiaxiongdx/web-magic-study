@@ -1,4 +1,4 @@
-Linux(arthas-boot.jar包方式)
+一、arthas命令Linux(arthas-boot.jar包方式)
 1.使用wget命令下载arthas-boot.jar
     wget https://alibaba.github.io/arthas/arthas-boot.jar
 
@@ -60,4 +60,15 @@ Linux(arthas-boot.jar包方式)
 
   4.8 生成内存快照(heapdump会生产FullGC)
       heapdump --live /usr/wjx/dump.hprof
+
+
+二、java自带命令
+1.查看使用了什么垃圾回收器
+  java -XX:+PrintCommandLineFlags -version
+
+  输出关键内容如下
+  -XX:InitialHeapSize=67108864 -XX:MaxHeapSize=1073741824 -XX:+PrintCommandLineFlags -XX:+UseParallelGC
+
+2.查看GC、内存使用情况
+   java -XX:+PrintGCDetails
 

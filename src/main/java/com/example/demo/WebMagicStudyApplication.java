@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.proxy.dynamic.JDKProxy;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -23,8 +24,13 @@ public class WebMagicStudyApplication {
 		application.setRegisterShutdownHook(false);
 		ApplicationContextUtil.setApplicationContext(application.run(args));
 
-		ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test44();
+		//ObjectLayoutTest jol = new ObjectLayoutTest();
+		//jol.test44();
+
+		//ObjectLayoutTest.SerSingleTon.test49();
+
+		JDKProxy jdkProxy = new JDKProxy();
+		jdkProxy.createJDKProxy();
 
      /*   Random random = new Random();
         int capacity = 100000;

@@ -3,6 +3,7 @@ package com.example.demo;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -19,7 +20,7 @@ import sun.misc.BASE64Decoder;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.io.IOException;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -82,6 +83,163 @@ public class ObjectLayoutTest {
         }
     };
 
+
+    /**
+     * 枚举单例模式
+     */
+    public static class DataSource{
+        private DataSource(){
+
+        }
+
+        public static DataSource getInstance() {
+            //只有第一次EnumSingleTon.INSTANCE才会调用枚举的构造方法
+            return EnumSingleTon.INSTANCE.getInstance();
+        }
+    }
+
+    public enum EnumSingleTon{
+        INSTANCE;
+
+        private DataSource enumSingleTon;
+
+        // JVM保证这个方法绝对只调用一次
+        EnumSingleTon(){
+            enumSingleTon = new DataSource();
+        }
+
+        private DataSource getInstance() {
+            return enumSingleTon;
+        }
+    }
+
+
+    /**
+     * 序列化和反序列化会破坏单例类
+     * 解决方案：在单例类中加上私有方法readResolve
+     */
+    public static class SerSingleTon implements Serializable {
+        private SerSingleTon(){
+            System.out.println("必须要有私有构造器,这可能是一个很耗时的操作");
+        }
+
+        private static SerSingleTon singleTon = new SerSingleTon();
+
+        public static SerSingleTon getSingleTon(){
+            return singleTon;
+        }
+
+        /**
+         * 加了私有的readResolve方法后，在反序列化的时候，会阻止生成新的实例，用readResolve的返回值替换了readObject的返回值
+         * @return
+         */
+        private Object readResolve(){
+            return singleTon;
+        }
+
+        // 序列化方式一
+        public static void test48(){
+            try {
+                SerSingleTon s1 = SerSingleTon.getSingleTon();
+                System.out.println("序列化前： "+ s1);
+
+                FileOutputStream fileOutputStream = new FileOutputStream("D:\\InnerClassSingleTon.txt");
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+                objectOutputStream.writeObject(s1);
+                objectOutputStream.flush();
+                objectOutputStream.close();
+
+                FileInputStream fileInputStream = new FileInputStream("D:\\InnerClassSingleTon.txt");
+                ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+                SerSingleTon s2 = (SerSingleTon)objectInputStream.readObject();
+                System.out.println("序列化后： "+ s2);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        // 序列化方式二，对流的封装
+        public static void test49(){
+            SerSingleTon s1 = SerSingleTon.getSingleTon();
+            System.out.println("序列化前： "+ s1);
+
+            byte[] bytes = SerializationUtils.serialize(s1);
+            SerSingleTon s2 = SerializationUtils.deserialize(bytes);
+            System.out.println("序列化后： "+ s2);
+        }
+    }
+
+
+
+    /**
+     * 内部类单例模式
+     * InnerClassSingleTon类被JVM加载时，不会初始化InnerSingleTon类，当getInstance方法被调用时，才会加载InnerSingleTon类
+     * 优点：可延迟加载、也无需同步(实例的创建是在类(InnerSingleTon)加载的时候完成的，天生对多线程友好)
+     *
+     * 但反射可以打破只能创建一个实例规则(暴力调用私有构造器)，最终可通过枚举单例模式解决这个问题
+     */
+    public static class InnerClassSingleTon{
+        private InnerClassSingleTon(){
+            System.out.println("必须要有私有构造器,这可能是一个很耗时的操作");
+        }
+
+        private static class InnerSingleTon {
+            private static InnerClassSingleTon innerSingleTon  = new InnerClassSingleTon();
+        }
+
+        public static InnerClassSingleTon getInstance(){
+            return InnerSingleTon.innerSingleTon;
+        }
+    }
+
+
+    /**
+     * 懒汉单例模式
+     * 优点：可延迟加载
+     * 缺点：加了同步，性能较低
+     */
+    public static class LazySingleTon{
+        private LazySingleTon(){
+            System.out.println("必须要有私有构造器,这可能是一个很耗时的操作");
+        }
+
+        private static LazySingleTon lazySingleTon = null;
+
+        public static synchronized LazySingleTon getSingleTon(){
+            if(lazySingleTon == null){
+                lazySingleTon = new LazySingleTon();
+            }
+            return lazySingleTon;
+        }
+    }
+
+
+    /**
+     * 饿汉单例模式
+     * 优点：
+     *     1.对于频繁使用的对象，可以省略创建对象的时间
+     *     2.new的次数减少，这将减轻GC压力、缩短GC停顿时间
+     * 缺点：无法做到延迟加载。所以，当这个单例类在系统中还扮演着其他角色，那么在任何使用这个单例类的地方都会初始化这个单例变量
+     *
+     */
+    public static class SingleTon{
+        private SingleTon(){
+            System.out.println("必须要有私有构造器,这可能是一个很耗时的操作");
+        }
+
+        private static SingleTon singleTon = new SingleTon();
+
+        public static SingleTon getSingleTon(){
+            return singleTon;
+        }
+
+        public static void createStr(){
+            System.out.println("单例类扮演的其他角色");
+        }
+    }
 
 
     /**
