@@ -85,6 +85,53 @@ public class ObjectLayoutTest {
 
 
     /**
+     *  String 技巧
+     */
+    public void test49(){
+
+        // substring复制原内容的value数组到新子字符串中，可能造成内存泄露。浪费了内存空间，提高了字符串的生成速度--空间换时间
+        String s = new String("hello");
+        System.out.println(s.substring(1,3));
+
+        String s2 = "a.b,c:d";
+        /*String[] strArr = s2.split("[.|,|:|]");
+        System.out.println(Arrays.asList(strArr));*/
+
+
+        // StringTokenizer分割效率高于split
+       /* StringTokenizer st = new StringTokenizer(s2, ", ");
+        while (st.hasMoreTokens()){
+            System.out.println(st.nextToken());
+        }*/
+
+
+        // charAt方式判断字符串以什么开头或结尾的效率高于startsWith和endsWith
+       /* String s3 = "abcdef";
+        System.out.println(s3.startsWith("abc"));
+        System.out.println(s3.endsWith("def"));
+
+        if(s3.charAt(0) == 'a' && s3.charAt(1) == 'b' && s3.charAt(2) == 'c'){
+            System.out.println("以abc开头");
+        }
+
+        if(s3.charAt(s3.length() - 1) == 'f' && s3.charAt(s3.length() - 2) == 'e' && s3.charAt(s3.length() - 3) == 'd'){
+            System.out.println("以def结尾");
+        }*/
+
+
+        // 编绎期会被优化成 String s4b = "abcd";
+        String s4 = "a+b+c+d";
+
+        // 编绎期会被优化成 通过StringBuild来拼接
+        String s5 = "123" + s4;
+
+
+        // arraycopy为native方法，性能较高
+        //System.arraycopy();
+    }
+
+
+    /**
      * 枚举单例模式
      */
     public static class DataSource{

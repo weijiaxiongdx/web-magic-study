@@ -1,6 +1,8 @@
 package com.example.demo;
 
+import com.example.demo.jvm.JVMTest;
 import com.example.demo.proxy.dynamic.JDKProxy;
+import com.example.demo.recursion.RecursionTest;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -24,13 +26,19 @@ public class WebMagicStudyApplication {
 		application.setRegisterShutdownHook(false);
 		ApplicationContextUtil.setApplicationContext(application.run(args));
 
-		//ObjectLayoutTest jol = new ObjectLayoutTest();
-		//jol.test44();
+		/*ObjectLayoutTest jol = new ObjectLayoutTest();
+		jol.test49();*/
 
 		//ObjectLayoutTest.SerSingleTon.test49();
 
-		JDKProxy jdkProxy = new JDKProxy();
-		jdkProxy.createJDKProxy();
+		/*JDKProxy jdkProxy = new JDKProxy();
+		jdkProxy.createJDKProxy();*/
+
+		/*RecursionTest recursionTest = new RecursionTest();
+		recursionTest.test50();*/
+
+		JVMTest jvmTest = new JVMTest();
+		jvmTest.test2();
 
      /*   Random random = new Random();
         int capacity = 100000;
