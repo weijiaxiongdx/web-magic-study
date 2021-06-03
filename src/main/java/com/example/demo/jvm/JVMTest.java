@@ -14,18 +14,69 @@ import javassist.NotFoundException;
  * 4.GC策略评价指标
  *   4.1 吞吐量：应用程序生命周期内，应用程序耗时与系统总运行时间的比值
  *   4.2 停顿时间：垃圾回收器运行时，应用程序暂停时间
+ * 5.稳定的堆空间(-Xms和-Xmx一样)可以减少ＧＣ次数，因此很多服务端都会将最大堆和最小堆设置为相同的数值。但也增加了每次GC的时间。
+ *   让堆在一个区间中震荡，在系统不需要使用大内存时，压缩堆空间，可加快单次GC速度，可通过以下JVM参数来解决。
+ *   -XX:MinHeapFreeRatio设置堆空间最小空闲比例，默认为40，当堆空间的空闲比例小于这个值时，JVM会扩展堆空间。
+ *   -XX:MaxHeapFreeRation 设置堆空间最大空闲比例，默认为70，当堆空间的空闲比例大于这个值时，JVM会压缩堆空间。
+ *   -Xms和-Xmx一样则上面两个参数无效。
+ * 6.设置以下参数，可在系统发生OOM错误时，JVM执行一段第三方脚本
+ *   -XX:OnOutOfMemoryError=C:\XX.bat
+ * 7.设置以下参数，可以禁用通过System.gc()触发Full GC
+ *   -XX:+DisableExplicitGC
+ * 8.对于应用程序而言，绝大部分情况下，是不需要进行类的回收的，因为回收类的性价比非常低。设置以下参数，可以禁用类的回收。
+ *   -Xnoclassgc
+ * 9.jdk的bin目录下的工具的实现来自lib目录的tools.jar，只是做了层包装
+ *   例如，jps.exe是对sun.tools.jps.Jps的包装
+ * 10.java自带工具
+ *    10.1 jstat 观察程序运行时信息
+ *             每秒统计一次共输出两次gc信息(25596为进程ID，1000为每1秒，2为共统计两次)
+ *             jstat -gc -t 25596 1000 2
+ *    10.2 jinfo 查看正在运行的java应用程序的扩展参数，支持在运行时修改部分参数
+ *         查看某个JVM参数的值(例子为查看新生代对象晋升到老年代对象的年龄，25596为java进程ID)
+ *         执行命令，jinfo -flag MaxTenuringThreshold 25596
+ *         输出日志 -XX:MaxTenuringThreshold=15
+ *
+ *         查看是否打印ＧＣ详细信息
+ *         执行命令，jinfo -flag PrintGCDetails 25596
+ *         输出日志 -XX:+PrintGCDetails
+ *
+ *         修改参数，将PrintGCDetails关闭
+ *         jinfo -flag -PrintGCDetails 20440
+ *
+ *    10.3 jamp 生成堆快照、对象统计信息
+ *
+ *         生成java进程的对象统计信息并输出到文件
+ *         jmap -histo 20440 >C:\s.txt
+ *
+ *         生成堆快照信息并输出到文件
+ *         jmap -dump:format=b,file=C:\heap.hprof 20440
+ *
+ *    10.4 jhat 分析堆快照内容，分析完成后会在7000端口启动一个http服务，在浏览器中输入 http://127.0.0.1:700查看分析结果
+ *         jhat c:\heap.hprof
+ *
+ *    10.5 jstack 打印java进程中的线程堆栈信息(-l表示输出锁相关信息)
+ *         jstack -l 20440
+ *
+ *    10.6 jstatd 是RMI服务端程序，相当于代理服务器，建立本地计算机与远程监控工具的通信
+ *         配合jps、jstat(这两个命令本身支持对远程计算机的监控，为了启用远程监控，则需要配合jstatd使用)可分别显示远程计算机的java进程和运行时信息
+ *
+ *    10.7 hprof 用于监控java应用程序运行时CPU信息和堆信息(待做实验验证)
+ *        使用参数-agentlib:hprof=cpu=times,interval=10运行程序，times选项会在java函数的调用前后记录执行时间，进而计算函数的执行时间
+ *
+ *    10.8 visualVM 强大的多合一故障诊断和性能监控的可视化工具，可以替代jstat、jamp、jhat、jstac甚至JConsole
+ *
  */
 public class JVMTest {
 
     /**
      * 方法区-常量池回收，只要常量池的对象没有被任何地方引用就可以被回收。
      * intern方法：如果常量池中有当前字符串，则返回池中的字符串对象，如果没有，则先将字符串加入常量池并返回对象引用
-     * 设置JVM参数(方法区的初始大小、最大值)并启动程序 -XX:PermSize=2M -XX:MaxPermSize=4M -XX:+PrintGCDetails
+     * 设置JVM参数(方法区的初始大小、最大值)并启动程序 -XX:PermSize=2M -XX:MaxPermSize=4M -XX:+PrintGCDetails -XX:+PrintGCTimeStamps
      * 会不断的GC，部分输出信息如下
-     *     [GC (Allocation Failure) [PSYoungGen: 379382K->12316K(389632K)] 407489K->40431K(510976K), 0.1500295 secs] [Times: user=0.19 sys=0.05, real=0.15 secs]
-     *     [GC (Allocation Failure) [PSYoungGen: 379932K->11833K(607232K)] 408047K->39955K(728576K), 0.8038558 secs] [Times: user=0.80 sys=0.00, real=0.80 secs]
-     *     [GC (Allocation Failure) [PSYoungGen: 598073K->1088K(606208K)] 626195K->40682K(727552K), 0.6887064 secs] [Times: user=0.70 sys=0.06, real=0.69 secs]
-     *     [GC (Allocation Failure) [PSYoungGen: 587328K->544K(788992K)] 626922K->40886K(910336K), 0.9561571 secs] [Times: user=0.95 sys=0.00, real=0.96 secs]
+     *     4.799: [GC (Allocation Failure) [PSYoungGen: 379382K->12316K(389632K)] 407489K->40431K(510976K), 0.1500295 secs] [Times: user=0.19 sys=0.05, real=0.15 secs]
+     *     8.004: [GC (Allocation Failure) [PSYoungGen: 379932K->11833K(607232K)] 408047K->39955K(728576K), 0.8038558 secs] [Times: user=0.80 sys=0.00, real=0.80 secs]
+     *     13.544: [GC (Allocation Failure) [PSYoungGen: 598073K->1088K(606208K)] 626195K->40682K(727552K), 0.6887064 secs] [Times: user=0.70 sys=0.06, real=0.69 secs]
+     *     27.130: [GC (Allocation Failure) [PSYoungGen: 587328K->544K(788992K)] 626922K->40886K(910336K), 0.9561571 secs] [Times: user=0.95 sys=0.00, real=0.96 secs]
      *  运行了好久，每当常量池饱和时，都会触发GC顺利回收常量池中的数据
      */
     public void test(){
@@ -92,6 +143,40 @@ public class JVMTest {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * JIT即时编译器，可以在运行时，将字节码编译成本地代码，从而提高函数的执行效率。
+     * 设置参数并启动程序 -XX:CompileThreshold=1500 -XX:+PrintCompilation -XX:+CITime
+     *     第一个参数设置编译阀值，当函数调用次数超过这个值时，JIT就会将此函数的字节码编译成本地代码(但本机实验时，到256次就把test3函数编译成本地代码了)
+     *     第二个参数设置打印编译信息（编译了哪些函数）
+     *     第三参数设置打印编译耗时信息（时间相关信息）
+     * 输出日志包括两部分，上部分是编译信息，下部分是耗时信息(以 "Accumulated compiler times (for compiled methods only)"为分界线)
+     */
+    long i = 0;
+    public void test3(){
+        i++;
+    }
+
+    public void test4(){
+        for (int j = 0; j < 256; j++) {
+            test3();
+        }
+    }
+
+
+    /**
+     * 堆快照
+     * 设置参数并启动程序 -Xmx10M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=C:\m.hprof
+     * 以上参数表示在堆内存溢出时，保存堆快照文件到C:\m.hprof
+     *
+     * 可使用Java自动的jvisualvm.exe工具或JProfiler分析dump文件
+     */
+    public void test5(){
+        for (int j = 0; j < 1000; j++) {
+            byte[] b = new byte[1024*1024*2];
         }
     }
 }

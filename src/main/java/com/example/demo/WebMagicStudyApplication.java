@@ -38,7 +38,7 @@ public class WebMagicStudyApplication {
 		recursionTest.test50();*/
 
 		JVMTest jvmTest = new JVMTest();
-		jvmTest.test2();
+		jvmTest.test();
 
      /*   Random random = new Random();
         int capacity = 100000;
