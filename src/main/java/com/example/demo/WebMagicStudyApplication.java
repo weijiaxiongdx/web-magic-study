@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.concurrentlist.ConcurrentListTest;
 import com.example.demo.jvm.JVMTest;
 import com.example.demo.proxy.dynamic.JDKProxy;
 import com.example.demo.recursion.RecursionTest;
@@ -26,8 +27,8 @@ public class WebMagicStudyApplication {
 		application.setRegisterShutdownHook(false);
 		ApplicationContextUtil.setApplicationContext(application.run(args));
 
-		/*ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test49();*/
+		ObjectLayoutTest jol = new ObjectLayoutTest();
+		jol.test50();
 
 		//ObjectLayoutTest.SerSingleTon.test49();
 
@@ -37,8 +38,11 @@ public class WebMagicStudyApplication {
 		/*RecursionTest recursionTest = new RecursionTest();
 		recursionTest.test50();*/
 
-		JVMTest jvmTest = new JVMTest();
-		jvmTest.test();
+		/*JVMTest jvmTest = new JVMTest();
+		jvmTest.test();*/
+
+		/*ConcurrentListTest concurrentListTest = new ConcurrentListTest();
+		concurrentListTest.test2();*/
 
      /*   Random random = new Random();
         int capacity = 100000;

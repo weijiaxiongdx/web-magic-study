@@ -64,6 +64,7 @@ public class ObjectLayoutTest {
     Random random = new Random();
     private int ticket = 100;
     AtomicInteger tickets = new AtomicInteger(100);
+    boolean stop = true;
 
     @Value("${wjx.str}")
     private String str;
@@ -82,6 +83,25 @@ public class ObjectLayoutTest {
             System.out.println(ex);
         }
     };
+
+
+    /**
+     * System.out.println为触发可见性
+     * 为什么没有这个效果，没有加volatile不是看到另一个线程的修改吗？？？
+     */
+    public void test50(){
+        new Thread(()->{
+            while (stop){
+                logger.info("t1");
+                //System.out.println("t1");
+            }
+        },"t1").start();
+
+
+        new Thread(()->{
+            stop = false;
+        },"t2").start();
+    }
 
 
     /**
