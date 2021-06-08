@@ -70,5 +70,6 @@
   -XX:InitialHeapSize=67108864 -XX:MaxHeapSize=1073741824 -XX:+PrintCommandLineFlags -XX:+UseParallelGC
 
 2.查看GC、内存使用情况
-   java -XX:+PrintGCDetails
+   JDK9之前： java -XX:+PrintGCDetails
+   JDK9之后： java -X-log: gc
 

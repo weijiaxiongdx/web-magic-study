@@ -179,4 +179,29 @@ public class JVMTest {
             byte[] b = new byte[1024*1024*2];
         }
     }
+
+
+
+    /**
+     * 设置栈大小 -Xss129k
+     * 栈抛出异常的两种情况
+     *     1.栈深度不够，抛出StackOverFlowError
+     *     2.如果支持栈动态扩展，当扩展栈容量无法申请足够的内存时，抛出OutOfMemoryError异常
+     * 本机测试时，必须设置超过128k(不同的虚拟机、不同的操作系统情况不一样)，否则报StackOverFlowError异常
+     * java虚拟机规范： 明确允许虚拟机实现，自行选择是否支持栈的动态扩展，而HotSpot实现的是不支持栈的动态扩展。
+     *                 所以只在创建线程申请内存而不足时，才会抛出OutOfMemoryError。否则线程在运行时，栈容量无法容纳新的栈帧时才抛出StackOverFlowError异常
+     *
+     *
+     * 由于过多的线程导致的内存溢出
+     *     OutOfMemoryError: unable to create native thread
+     * 解决方案：可通过减少最大堆和减少栈容量来换取更多的线程
+     *
+     *
+     * JDK7之前：运行时常量池(包括字符串常量池)存在于方法区(实现为永久代)
+     * JDK7：运行时常量池中的字符串常量池移到了堆中，剩下的部分还是在方法区(实现为永久代)
+     * JDK8：方法区的实现由永久代改为元空间，所以运行时常量池存在于元空间
+     */
+    public void test6(){
+        String s = "hello".intern();
+    }
 }

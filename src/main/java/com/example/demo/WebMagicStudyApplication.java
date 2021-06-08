@@ -27,8 +27,8 @@ public class WebMagicStudyApplication {
 		application.setRegisterShutdownHook(false);
 		ApplicationContextUtil.setApplicationContext(application.run(args));
 
-		ObjectLayoutTest jol = new ObjectLayoutTest();
-		jol.test50();
+		/*ObjectLayoutTest jol = new ObjectLayoutTest();
+		jol.test50();*/
 
 		//ObjectLayoutTest.SerSingleTon.test49();
 
@@ -38,8 +38,8 @@ public class WebMagicStudyApplication {
 		/*RecursionTest recursionTest = new RecursionTest();
 		recursionTest.test50();*/
 
-		/*JVMTest jvmTest = new JVMTest();
-		jvmTest.test();*/
+		JVMTest jvmTest = new JVMTest();
+		jvmTest.test();
 
 		/*ConcurrentListTest concurrentListTest = new ConcurrentListTest();
 		concurrentListTest.test2();*/
