@@ -86,6 +86,51 @@ public class ObjectLayoutTest {
 
 
     /**
+     * 按照char>int>long>float>double的顺序转型进行匹配，但不会匹配到byte和short类型的重
+     * 载，因为char到byte或short的转型是不安全的
+     * 方法重载本质：编译期选择静态分派目标
+     * hello char->hello int->hello long->hello Character->hello Serializable->hello Object->hello char...
+     */
+    public static class OverLoad {
+        /*public static void test51(Object arg){
+            System.out.println("hello Object");
+        }*/
+
+        // 自动转型一次 a->97
+        /*public static void test51(int arg){
+            System.out.println("hello int");
+        }*/
+
+
+        // 自动转型两次 a->97->97L
+        /*public static void test51(long arg){
+            System.out.println("hello long");
+        }*/
+
+
+        // 自动装箱一次
+        /*public static void test51(Character arg){
+            System.out.println("hello Character");
+        }*/
+
+
+        /*public static void test51(char arg){
+            System.out.println("hello char");
+        }*/
+
+        public static void test51(char... arg){
+            System.out.println("hello char...");
+        }
+
+
+        // java.lang.Serializable是java.lang.Character类实现的一个接口，当自动装箱之后发现还是找不到装
+        //箱类，但是找到了装箱类所实现的接口类型
+        /*public static void test51(Serializable arg){
+            System.out.println("hello Serializable");
+        }*/
+    }
+
+    /**
      * System.out.println为触发可见性
      * 为什么没有这个效果，没有加volatile不是看到另一个线程的修改吗？？？
      */

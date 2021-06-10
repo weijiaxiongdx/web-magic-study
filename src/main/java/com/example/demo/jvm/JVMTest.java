@@ -28,10 +28,10 @@ import javassist.NotFoundException;
  * 9.jdk的bin目录下的工具的实现来自lib目录的tools.jar，只是做了层包装
  *   例如，jps.exe是对sun.tools.jps.Jps的包装
  * 10.java自带工具
- *    10.1 jstat 观察程序运行时信息
+ *    10.1 jstat 观察程序运行时信息(GC、类加载、内存、即时编译等运行时数据)
  *             每秒统计一次共输出两次gc信息(25596为进程ID，1000为每1秒，2为共统计两次)
  *             jstat -gc -t 25596 1000 2
- *    10.2 jinfo 查看正在运行的java应用程序的扩展参数，支持在运行时修改部分参数
+ *    10.2 jinfo 查看正在运行的java应用程序的扩展参数，支持在运行时修改部分参数(实时查看和调整JVM各项参数)
  *         查看某个JVM参数的值(例子为查看新生代对象晋升到老年代对象的年龄，25596为java进程ID)
  *         执行命令，jinfo -flag MaxTenuringThreshold 25596
  *         输出日志 -XX:MaxTenuringThreshold=15

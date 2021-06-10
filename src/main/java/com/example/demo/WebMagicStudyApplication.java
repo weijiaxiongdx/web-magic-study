@@ -38,11 +38,13 @@ public class WebMagicStudyApplication {
 		/*RecursionTest recursionTest = new RecursionTest();
 		recursionTest.test50();*/
 
-		JVMTest jvmTest = new JVMTest();
-		jvmTest.test();
+		/*JVMTest jvmTest = new JVMTest();
+		jvmTest.test();*/
 
 		/*ConcurrentListTest concurrentListTest = new ConcurrentListTest();
 		concurrentListTest.test2();*/
+
+		ObjectLayoutTest.OverLoad.test51('a');
 
      /*   Random random = new Random();
         int capacity = 100000;
