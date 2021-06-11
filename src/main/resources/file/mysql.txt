@@ -1,0 +1,45 @@
+一、隔离级别
+   1.查看隔离级别
+       旧版本： select @@global.tx_isolation;
+       新版本： select @@global.transaction_isolation;
+   2.设置隔离级别
+       set global transaction_isolation ='read-committed';
+       set global transaction_isolation ='repeatable-read';
+
+
+二、锁(id设置为了主键、隔离级别为repeatable-read)
+   1.排它锁-事务A中执行以下语句锁定某一行记录
+       select * from wjx_test_copy where id = 11000098 for update;
+       A事务提交之前
+         1.1其它事务不能修改这一行记录(会阻塞)，但可查询这一行记录
+         1.2其它事务不能再对这行进行for update加锁(会阻塞)
+
+   2.排它锁-事务A中执行以下语句锁定多行记录(明确几行)
+       select * from wjx_test_copy where id in(11000098,11000097) for update;
+       A事务提交之前
+         2.1其它事务不能修改这多行(其中任意一行)记录(会阻塞)，但可查询这多行(任意一行)记录
+         2.2其它事务不能再对这多行(其中的任意一行)进行for update加锁(会阻塞)
+
+   3.排它锁-事务A中执行以下语句锁定多行记录（范围）
+          select * from wjx_test_copy where id > 11000097 for update;
+          A事务提交之前
+            3.1其它事务不能修改这多行(其中任意一行)记录(会阻塞)，但可查询这多行(任意一行)记录
+            3.2其它事务不能再对这多行(其中的任意一行)进行for update加锁(会阻塞)
+            3.3可以插入满足条件的记录中还不存在的主键(然后修改)
+
+   4.共享锁-事务A中执行以下语句锁定某行记录
+       select * from wjx_test_copy where id = 11000123 lock in share mode;
+       A事务提交之前
+         4.1A事务自己可以修改这行记录(此时其它事务没有对该行加共享锁且也能不修改此行数据，会阻塞--lock in share mode)
+         4.2A事务自己不可以修改这行记录，会阻塞(此时其它事务也对该行加了共享锁且也不能修改此行数据，会阻塞--lock in share mode)
+         4.3其它事务也对该行加了共享锁，然后，A事务先对该行做更新操作（会阻塞），其它事务对该行做更新操作时，其他事务会检测到死锁并回
+            滚其它事务且A事务不再阻塞立刻执行，其它事务中抛出的死锁信息如下
+            Deadlock found when trying to get lock; try restarting transaction
+   5.普通select词句默认不加锁，增、删、改默认加排它锁
+
+
+三、MVCC(多版本并发控制)
+   1.目的：解决读写冲突
+   2.Read View：事务进行快照读时产生的读视图（快照读那一刻数据库系统的快照），记录并维护系统当前活跃事务(没有提交的事务)的ID，细分为
+                三个属性，分别为活跃事务id列表、最小事务id、未分配的最新事务id加1的值
+   3.实现： 每一行两个隐藏字段（6个字节的事务id、7个字节的回滚指针）+ undo log
