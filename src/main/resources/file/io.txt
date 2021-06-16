@@ -1,0 +1,64 @@
+1.linux下执行以下命令就监听了8080端口(实现任意TCP/UDP端口的侦听，相当于开启了一个服务)
+  nc -l 8080
+
+2.linux根目录下的/proc目录，开机之前是空的，开机后就有内容了。每个进程(比如开启的java服务)开启后，都会在该目录下产生一个以进程ID为名称的目录。
+  执行以下命令，进入到进程的文件描述符目录
+  cd /proc/19759/fd
+
+  输出结果如下，因为在linux中，一切皆文件，linux把IO抽象成了文件描述符，0文件描述符表示输入流(in)、1文件描述符表示输出流(out)、2文件描述符表示报错流(error)
+  任何一个进程都有0、1、2这三个文件描述符。第4行表示1中开启的nc进程对应的socket服务(即文件描述符3)
+  lrwx------ 1 test test 64 Jun 15 16:17 0 -> /dev/pts/0
+  lrwx------ 1 test test 64 Jun 15 16:17 1 -> /dev/pts/0
+  lrwx------ 1 test test 64 Jun 15 16:05 2 -> /dev/pts/0
+  lrwx------ 1 test test 64 Jun 15 16:17 3 -> socket:[4965442]
+
+3.linux执行以下命令，开启一个nc客户端并连上8080端口的服务
+  nc localhost 8080
+
+  此时cd /proc/19759/fd，可以看到文件描述符中多了一个客户端socket(第5行，每连上一个客户端，就会多一个客户端socket)，输出结果如下
+  lrwx------ 1 test test 64 Jun 15 16:17 0 -> /dev/pts/0
+  lrwx------ 1 test test 64 Jun 15 16:17 1 -> /dev/pts/0
+  lrwx------ 1 test test 64 Jun 15 16:05 2 -> /dev/pts/0
+  lrwx------ 1 test test 64 Jun 15 16:17 3 -> socket:[4965442]
+  lrwx------ 1 test test 64 Jun 15 16:39 4 -> socket:[4965443]
+
+4.linux执行以下命令，安装man、man-pages两个程序，以查看系统调用
+  yum install man man-pages
+
+  然后执行以下命令，查看socket的实现
+  man 2 socket
+
+5.开启一个程序要经过内核的几次系统调用？
+   fd3 = socket()，创建socket对象并返回文件描述符fd3 -->bind(8080)，绑定端口 -->listen(fd3)，监听 -->accept(fd3)，为了完成客户端的连接并返回客户端的文件描述符，此步骤会阻塞
+   -->连上一个客户端,还没发向服务端送数据(第3步),则accept(fd3)会返回fd4文件描述符 -->客户端发送数据 -->socket服务端进行read(fd4)系统调用读取相应数据，此步阻塞。
+
+   如果这时，还有很多其他的socket客户端连上并读求读数据，则read这一步势必会严重阻塞，所以古老的C/S架构，是开启线程进行read操作的。但线程有上限并
+   会进行线程上下文切换(cpu晶振，振动多少次为一个时间单元进行切换，电子手表的显示时间就是这个道理)，耗性能。因为read阻塞，此时代被称为BIO时代。
+
+   后来即使read没有读取到数据也直接返回，客户端会轮询读取，直到数据返回，此时代被称为NIO时代。
+
+   但是，目前还是有多少个socket连接就会进行多少次read系统调用。所以，这个时候select系统调用闪亮登场
+
+
+6.linux中帮助文档被分成了八类，第二类为系统调用。以下命令就是查看socket系统调用的帮助文档
+  man 2 socket
+
+7. 应用程序缓冲区、内核缓冲区、硬盘
+ FileOutputStream fos = new FileOutputStream(file);
+ fos.write("hello");//每次直接将数据写到内核缓冲区，每次都要经过系统调用
+ fos.flush();//将内核缓冲区中的内容写到磁盘
+
+
+ BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file));
+ bos.write();//每次将数据写到应用程序缓冲区(buffer),待buffer满了之后，经过一次系统调用将buffer中的内容一次性写到内核缓冲区
+ bos.flush();//将内核缓冲区中的内容写到磁盘
+
+
+ ByteOutputStream bos = new ByteOutputStream(1024);//内存开辟一块内存
+ bos.write("hello".getBytes());//将数据写到内存
+
+
+ RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+ FileChannel fileChannel = randomAccessFile.getChannel();
+ MappedByteBuffer byteBuffer = fileChannel.map(fileChannel.MapMode.Read_WRITE);
+ byteBuffer.put("hello".getBytes());//将数据写到映射区，相当于直接写到磁盘
