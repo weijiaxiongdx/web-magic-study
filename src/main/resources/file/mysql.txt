@@ -46,3 +46,171 @@
    2.Read View：事务进行快照读时产生的读视图（快照读那一刻数据库系统的快照），记录并维护系统当前活跃事务(没有提交的事务)的ID，细分为
                 三个属性，分别为活跃事务id列表、最小事务id、未分配的最新事务id加1的值
    3.实现： 每一行两个隐藏字段（6个字节的事务id、7个字节的回滚指针）+ undo log
+
+
+四、锁引
+    1.复合锁引，如有锁引index(C1,C2,C3)
+    复合锁引能解决回表问题（二次查询问题）?
+        因为如果复合索引已覆盖了查询，则不会再通过主键去（聚集锁引）查询数据。
+        select C1,C2,C3 from tableName;
+
+    如果查询中有某个锁引列的范围查询，则其右边所有的列都无法使用到锁引。以下查询只能使用到锁引的前两列(C1、C2)
+    select * from tableName where C1 = "XX" and C2 like "Y%" and C3 = "ZZ";
+
+    不能跳过锁引中的列。以下查询只能用到锁引中的第一列(C1)
+    select * from tableName where C1 = "XX" and C3 = "ZZ";
+
+    2.对于BLOB、TEXT或者很长的varchar类型的列，必须使用前缀锁引，mysql不允许使用这些列的完整长度。
+
+    3.前缀锁引，前缀锁引不能做order by 、group by，也无法做覆盖扫描
+      如何计算前缀锁引的长度？
+      3.1 不断调整前缀列的选择性，使之接近完整列的选择性
+
+         首先通过以下语句查看完整列的选择性(统计字段重复次数)
+         select count(*) c,name from tableName group by name order by c desc limit 10
+
+         然后通过以下语句不断调整前缀列的选择性，使之接近完整列的选择性(出现的次基本一致)。最终x的值就是锁引前缀长度。
+         select count(*) c,left(name,x) from tableName group by name order by c desc limit 10
+
+      3.2 计算完整列的选择性
+         select count(distinct name)/count(*) from tableName;
+
+         然后通过以下语句计算各前缀列的选择性，与完整列的选择性基本一致即可
+         select
+              count(distinct left(name,3)/count(*) c1,
+              count(distinct left(name,4)/count(*) c2,
+              count(distinct left(name,5)/count(*) c3,
+              count(distinct left(name,6)/count(*) c4,
+              count(distinct left(name,7)/count(*) c5
+         from tableName;
+
+    4.只有当复合锁引的列顺序和order by子句的顺序完全一致，并且所有列的排序方向一样时，mysql才能使用该复合锁引来排序。
+      order by 也需要满足最左前缀匹配规则。
+
+    5.可以使用以下命令查看表是否损坏（损坏的锁引会导致查询返回错误的结果或者莫须有的主键冲突问题，严重时会导致数据库崩溃）
+      check table wjx_test_copy;
+
+      可以使用命令来修复损坏的表，Inodb引擎不支持？？？
+      repair table wjx_test_copy;
+
+
+五、查询性能优化
+    1.切分查询，一个大查询分成多个小查询，每个小查询只返回一部分结果
+    2.分解关联查询，将几个表的一次关联查询分解成多个单表查询，然后在应用程序中进行合并结果
+      提高缓存效率、执行单个查询可以减少锁竞争，在应用层做关联可以更容易对数据进行拆分(更容易做到高性能和高扩展)
+    3.表的关联顺序不一定是sql语句中写的顺序，优化器可以决定表的关联顺序。
+      将外连接转化成内连接，where条件、库表结构都可能让外连接等价于一个内连接，mysql能识别这一点并重写查询。
+    4.覆盖锁引扫描：当锁引中的列包含所有查询中需要使用列的时候，就可以直接使用锁引返回数据，不需要查询具体的数据行。
+    5.提前终止查询：
+        5.1发现已经满足查询需求时，立刻终止查询（例如使用limit）
+        5.2发现一个不成立的条件时立刻返回空结果。id为主键，执行以下语句则立刻终止查询并返回空结果
+           select * from wjx_test where id = -1;
+
+           执行计划中的Extra字段的信息可证明这一点
+           no matching row in const table
+    6.hint提示(告诉执行优化器，按照我们定义的方式来生成执行计划)
+        6.1只使用字段FIELD1上的锁引，不使用其它字段上的锁引
+           SELECT * FROM TABLE1 FORCE INDEX (FIELD1)
+
+        6.2优先操作(HIGH_PRIORITY用于select和insert中)
+           select HIGH_PRIORITY * from wjx_test where id = 312;
+
+        6.3滞后操作(LOW_PRIORITY用于insert和update中)
+           update LOW_PRIORITY table1 set field1= where field1=xx
+
+    7.count()的作用
+      统计某个列值的数量(不统计NULL列)、统计行数
+      7.1 count(*) 忽略所有的列，而直接统计所有的行数。在括号内指定了一个列却希望统计结果集的行数，这是不对的。
+
+    8.当order by、group by表达式中的列只涉及到一个表中的列时，才能使用到锁引
+    9.子查询尽可能使用关联查询来替代
+    10.在分组的基础上再做聚合操作是不够优化的，怎么办？最好的办法返回更多的数据，在应用程序中处理
+       select name,sum(sal) from wjx_test GROUP BY name with rollup;
+    11.使用用户自定义变量（用来存储内容的临时容器，在连接mysql的整个过程中都存在，即一个连接中有效，在查询中混合使用过程化和关系化的逻辑时非常有用）
+        set @name:="楚楚";
+        select * from wjx_test_copy where name = @name;
+
+        在任何类型的sql中都可以对变量进行赋值
+        使用自定义变量无法使用查询缓存
+        赋值符号:=的优先级非常低，所以赋值表达式应该使用明确的括号
+
+    12.避免重复查询刚刚更新的数据
+       场景：更新行的同时又希望获得该行的信息（例如，更新某个字段后又要获取该字段），怎么办？
+       12.1 两条sql，一个更新一个查询
+       12.2 使用变量,因为第二条sql不用访问任何数据表，所以快很多(如果网络延迟非常大，则这个优化意义可能不大)。第一条sql测试的时候为什么执行不成功呢（更新行数0行）
+            update wjx_test_copy set name = "天下第一" where id = 11000158 and @v_name := "天下第一";
+            select @v_name;
+    13.查询缓存在8.0版本已经删除了，因为查询缓存 缓存的是查询结果（与缓存执行计划不一样），另在增、删、改的时候又要清除缓存，反倒是影响性能
+
+
+六、mysql客户端/服务端通信协议
+   1.mysql客户端和服务端通信协议是半双工的，在任何一个时刻，要么是由客户端向服务端发送数据，要么是由服务端向客户端发送数据，这两个动作不能同时发生
+   2.执行以下命令，可查看mysql连接或线程的状态(Command列表示状态)
+     show full processlist;
+
+
+七、分区,一个独立的逻辑表，底层由多个物理子表组成
+    1.目的：将数据按照一个较粗的粒度分布在不同的表中
+    2.一个表最多只能有1024个分区、分区表无法使用外键
+    3.分区列和索引列不匹配时，会导致查询无法进行分区过滤。应避免建立和分区不匹配的索引。
+    4.所有分区都必须使用相同的存储引擎。有的存储引擎不支持分区。
+    5.在where条件中带上分区的列(即使无用也要带上)，这样优化器能够过滤掉无须访问的分区
+    6.不能对分区列进行计算或使用函数，否则不能过滤分区
+
+
+八、视图，虚拟表，不存任何数据，它返回的数据是从其他表中生成的
+    1.创建并查询视图
+      create view wjx_test_copy_view as select * from wjx_test_copy where id > 11000155;
+      select * from wjx_test_copy_view;
+
+    2.更新视图(实际表中也会被更新)
+      update wjx_test_copy_view set name = "天下第三" where id = 11000158;
+
+    3.视图的实现方式
+      3.1临时表，存在性能问题
+      3.2重写含有视图的查询，即将视图的定义sql直接包含进查询的sql中
+
+    4.mysql不支持在视图中创建锁引
+
+九、在mysql内部存储代码
+   1.mysql可以通过触发器、存储过程、存储函数、事件(定时任务)来存储代码，是一种共享和复用代码的方法
+   2.InooDB引擎中，原操作和触发器操作是在同一个事务中。触发器可用于系统维护任务、更新反范式化数据。只支持基于行的触发。
+   3.创建事件，每分钟执行一次插入语句
+     create event wjx_event on schedule every 1 minute
+     do
+     INSERT INTO `mall_v2.8.1`.`wjx_test_copy`(`sal`, `name`, `full_name`, `sex`) VALUES (3.58, '天下第三123', 'weilaifullname', '男');
+
+   4.停止/开启事件
+     set global event_scheduler=0/1;
+     set global event_scheduler=OFF/ON;
+
+     ALTER EVENT wjx_event ON COMPLETION PRESERVE DISABLE;
+
+   5.可在系统表中查看事件的状态
+     select * from information_schema.`EVENTS`
+
+   6.事件调度是单独一个线程，但每次会创建一个新线程来执行事件，执行完成后，该执行线程就会被销毁
+
+十、服务器设置
+   1.配置文件的位置，在类NNIX系统中，配置文件位置一般在/etc/my.cnf ，可通过以下命令查找文件
+     find / -name "my.cnf"
+
+   2.配置文件分为很多个部分，每个部分的开头是一个用方括号括起来的分段名称，服务器通常读取mysqld这一段，客户端程序读取client这一段，
+     一定要确认放到了正确的分段中，否则配置不生效
+
+
+     看到8.3节
+
+
+
+
+
+
+
+
+
+
+
+
+
+
