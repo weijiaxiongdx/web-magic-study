@@ -1,0 +1,24 @@
+1.创建mysql账户并授权
+  create user wjx identified by 'wjx';
+  GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'wjx'@'%';
+  flush privileges;
+
+2.mysql8中创建用户默认加密方式为caching_sha2_password，访问CanalAction中的test接口中会报如下错误(wjx为数据库用户名)
+  wjx caching_sha2_password Auth failed
+
+  先通过以下语句查看验证方式(user为系统表)
+  select host,user authentication_string,plugin from user;
+
+  输出内容如下，由以下输出内容可知，wjx用户的验证方式为caching_sha2_password
+  +-----------+-----------------------+-----------------------+
+  | host      | authentication_string | plugin                |
+  +-----------+-----------------------+-----------------------+
+  | %         | wjx                   | caching_sha2_password |
+  | localhost | mysql.infoschema      | caching_sha2_password |
+  | localhost | mysql.session         | caching_sha2_password |
+  | localhost | mysql.sys             | caching_sha2_password |
+  | localhost | root                  | mysql_native_password |
+  +-----------+-----------------------+-----------------------+
+
+  报错解决方案，执行以下语句修改密码验证方式为mysql_native_password（@符号后面为上表中的host字段值）
+  ALTER USER 'wjx'@'%' IDENTIFIED WITH mysql_native_password BY 'wjx';
