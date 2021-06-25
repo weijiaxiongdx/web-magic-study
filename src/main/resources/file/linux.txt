@@ -2,7 +2,7 @@
    1.如果路径名第一个字符是斜杠，那么这个路径就是绝对路径，起点为根目录。
      如果路径第一项为目录或文件名，那么这个路径就是相对路径，起点为进程的当前目录。
 
-   2.软链接(也称符号链接)/硬链接
+   2.软链接(也称符号链接)/硬链接，似于windows下的快捷方式
      2.1软链接(也称符号链接)，是原文件的一个引用
         作用：便于文件的管理，比如把一个复杂路径下的文件链接到一个简单路径下方便用户访问。
              解决空间不足问题，如果某个文件系统空间已经用完了，但是现在必须在该文件系统下创建一个新的目录并存储大量的文件，
@@ -32,6 +32,65 @@
 
 
    3.文件的唯一标识为索引节点，每个文件都有自己的索引节点
+
+   4.执行以下命令可临时禁用主机的ping响应（其他机器ping不通此主机，1表示禁用、0表示启用）
+     echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_al
+
+
+   5.文件目录
+     5.1 /usr   usr是unix shared resources(共享资源)的缩写，这是一个非常重要的目录，用户的很多应用程序和文件都放在这个目录下，类似
+                于windows下的program files目录。
+     5.2 /var   var是variable的缩写，这个目录中存放着在不断扩充着的东西，我们习惯将那些经常被修改的目录放在这个目录下。包括各种(应用程序的)日志文件。
+     5.3 /etc   etc是Etcetera(等等)的缩写,这个目录用来存放所有的系统管理所需要的配置文件和子目录。不要误删或更改此目录下的文件，因为
+                可能会导致系统不能启动。
+
+     5.4 /home  用户的家目录，每一个用户的家目录通常默认为/home/USERNAME
+
+   6.挂载：指的就是将设备文件中的顶级目录连接到Linux根目录下的某一目录（最好是空目录），访问此目录就等同于访问设备文件。
+          在 Linux 看来，任何硬件设备也都是文件，它们各有自己的一套文件系统（文件目录结构）。
+          因此产生的问题是，当在Linux系统中使用这些硬件设备时，只有将Linux本身的文件目录与硬件设备的文件目录合二为一，硬件设备才能为
+          我们所用。合二为一的过程称为“挂载”。
+
+          注意：并不是根目录下任何一个目录都可以作为挂载点，由于挂载操作会使得原有目录中文件被隐藏(卸载后恢复正常)，因此根目录以及系统原有目录都不要
+               作为挂载点，会造成系统异常甚至崩溃，挂载点最好是新建的空目录。
+
+
+          将设备“/dev/sr0”挂载到挂载点/mnt/cdrom
+          mount /dev/sr0 /mnt/cdrom
+
+          卸载
+          umount /dev/sr0
+
+   7.执行以下命令查询系统识别到的硬盘设备
+     fdisk -l
+
+      输出内容如下，其中“/dev/vda”就是设备文件名
+      Disk /dev/vda: 214.7 GB, 214748364800 bytes, 419430400 sectors
+      Units = sectors of 1 * 512 = 512 bytes
+      Sector size (logical/physical): 512 bytes / 512 bytes
+      I/O size (minimum/optimal): 512 bytes / 512 bytes
+      Disk label type: dos
+      Disk identifier: 0x000c817d
+
+         Device Boot      Start         End      Blocks   Id  System
+      /dev/vda1   *        2048     2099199     1048576   83  Linux
+      /dev/vda2         2099200   419184639   208542720   8e  Linux LVM
+
+      Disk /dev/mapper/centos-root: 205.1 GB, 205084688384 bytes, 400556032 sectors
+      Units = sectors of 1 * 512 = 512 bytes
+      Sector size (logical/physical): 512 bytes / 512 bytes
+      I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+      Disk /dev/mapper/centos-swap: 8455 MB, 8455716864 bytes, 16515072 sectors
+      Units = sectors of 1 * 512 = 512 bytes
+      Sector size (logical/physical): 512 bytes / 512 bytes
+      I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+
+
+
 
 
 
