@@ -1,0 +1,70 @@
+以下都是在192.168.1.88开发环境实验
+一、基础
+     1.nginx能做什么
+        反向代理
+        负载均衡
+        动静分离：静态资源(html、css、图片等)去静态资源服务器获取，动态资源(jsp、servlet等)去动态资源服务器获取
+
+     2.进入目录/usr/local/nginx/sbin， 执行./nginx命令启动linux之后，查看nginx进程，输出内容如下
+       1个master进程，4个work进程(可在配置文件中配置)
+       root      2506     1  0 Jun10 ?        00:00:00 nginx: master process /usr/local/nginx/sbin/nginx
+       www      26754  2506  0 Jun24 ?        00:00:01 nginx: worker process
+       www      26755  2506  0 Jun24 ?        00:00:02 nginx: worker process
+       www      26756  2506  0 Jun24 ?        00:00:05 nginx: worker process
+       www      26757  2506  0 Jun24 ?        00:00:03 nginx: worker process
+
+     3.查看nginx版本(进入目录/usr/local/nginx/sbin)
+     ./nginx -v
+
+     输出内容如下
+     Tengine version: webserver/2.3.0 (Lihui/1.15.9)
+
+     4.停止nginx(进入目录/usr/local/nginx/sbin)，stop相当于使用kill命令强制结束进程
+       ./nginx -s stop
+
+     5.启动nginx，指定配置文件(进入目录/usr/local/nginx/sbin)
+       ./nginx -c /usr/local/nginx/conf/nginx.conf
+
+     6.不重启的情况重新加载配置文件
+       ./nginx -s reload
+
+     7.反向代理配置，将请求转发到http://ip:port
+       http--->server--->location配置以下内容
+       proxy_pass http://ip:port
+
+     8.负载均衡配置
+       8.1http--->upstream XXX配置以下内容(负载策略默认为轮询)
+          server ip1:port1
+          server ip2:port2
+
+       8.2http--->server--->location配置以下内容
+          proxy_pass http://XXX
+
+       8.3负载策略
+          轮询、ip_hash、权重、fair(根据响应时间来转发，转发给响应时间短的服务器)
+
+     9.高可用(nginx主从)
+       9.1两台nginx服务器
+
+       9.2执行以下命令安装keepalived(两台nginx都需要有keepalived，生成的配置文件默认目录为/etc/keepalived/keepalived.conf)
+          yum install keepalived
+
+          执行以下命令查看软件包是否已经安装完成(是否存在)，q表示query，a表示all
+          rpm -q -a keepalived
+
+          输出内容(keepalived的软件包)
+          keepalived-1.3.5-19.el7.x86_64
+
+       9.3虚拟ip绑定两个真实的nginx服务器(keepalived.conf文件中配置)
+          配置检测脚本，来检测主nginx是否可用，若不可用则自动切换到从nginx服务器(keepalived.conf文件中配置)
+
+       9.4执行以下命令启动keepalived
+          systemctl start keepalived.service
+
+       9.5访问
+          http://虚拟ip
+
+
+
+
+
