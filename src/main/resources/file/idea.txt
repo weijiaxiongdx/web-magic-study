@@ -1,0 +1,5 @@
+一、快捷键
+    1.设置背景图快捷键
+       file-settings-输入keymap-搜索Set Background Image-添加快捷键
+
+    2.使用1中设置的快捷键调出面板-设置图片及透明度
