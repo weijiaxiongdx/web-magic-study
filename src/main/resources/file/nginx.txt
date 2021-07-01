@@ -14,13 +14,21 @@
        www      26757  2506  0 Jun24 ?        00:00:03 nginx: worker process
 
      3.查看nginx版本(进入目录/usr/local/nginx/sbin)
-     ./nginx -v
+       ./nginx -v  只有版本信息
+       ./nginx -V  除了版本信息外，还有配置参数等信息
 
      输出内容如下
      Tengine version: webserver/2.3.0 (Lihui/1.15.9)
 
      4.停止nginx(进入目录/usr/local/nginx/sbin)，stop相当于使用kill命令强制结束进程
+
+       命令方式
        ./nginx -s stop
+
+       信号方式
+       kill -QUIT master进程的id   优雅关闭(work进程不再接收新的请求，已有的请求处理完成后再停止nginx)
+       kill -HUP master进程的id    停止当前work进程，并以最新配置文件开启新的work进程
+       kill -WINCH master进程的id  停止所有work进程，master进程还在
 
      5.启动nginx，指定配置文件(进入目录/usr/local/nginx/sbin)
        ./nginx -c /usr/local/nginx/conf/nginx.conf
@@ -41,7 +49,7 @@
           proxy_pass http://XXX
 
        8.3负载策略
-          轮询、ip_hash、权重、fair(根据响应时间来转发，转发给响应时间短的服务器)
+          轮询、加权轮询、ip_hash、url_hash、fair(根据响应时间来转发，转发给响应时间短的服务器)
 
      9.高可用(nginx主从)
        9.1两台nginx服务器
@@ -63,6 +71,51 @@
 
        9.5访问
           http://虚拟ip
+
+     10.官方网站
+        http://nginx.org/en/download.html
+
+        更早的版本可以通过以下地址下载
+        http://nginx.org/download/
+
+     11.以树形结构展示目录及文件
+        先安装 yum install -y tree
+        再查看 tree /usr/local/nginx/
+
+     12.平滑升级(13804为master进程的id)，在不停止nginx服务的情况完成nginx的升级(低版本到高版本)
+        12.1在服务器上准备两个版本的nginx，例如nginx1.1、nginx1.2
+        12.2完成nginx1.1的完整安装过程。解压nginx1.2并配置和编译，但不安装(相当于准备环境)。
+        12.3备份nginx1.1的/sbin/nginx文件（用于升级错误时恢复），将nginx1.2编译后的objs目录下的nginx文件拷贝到nginx1.1的/sbin目录下
+
+        方案一：信号
+        12.4发送信号USR2给nginx的master进程
+            kill -USR2 13804，执行此命令后，将会复制出一套新的master、work进程(可通过ps命令查看，新的master进程为原来master进程的子进程)。
+                              也会产生一个新文件nginx.pid.oldbin(为什么自己实验的时候没有呢？)
+
+        12.5发送信号QUIT给nginx的master进程，等确认升级完成后，再执行以下命令停止原的nginx
+            kill -QUIT 旧nginx的master进程id
+
+        方案二：命令(前三步同方案一)
+        12.6在ngnix1.2根目录下，执行以下命令进行升级，实际上该命令内部原理就是12.4和12.5两步的过程
+             make upgrade
+
+     13.检测nginx的配置文件是否有语法错误
+        ./nginx -t   正常时会输出成功信息
+        ./nginx -T   正常时会输出成功信息，还会输出文件的内容
+
+     14.进程模型
+        一个master进程对应多个work进程，master进程用于管理work进程，work进程用于接收并处理用户请求
+
+二、配置文件nginx.conf
+   15.全局块指令
+      user 用户名           ，修改work进程的所属用户信息(默认用户为nobody)，权限控制更加精细、安全
+      master_process on|off，指定是否开启工作进程。修改了此项配置后，使用reload命令不能使修改生效，必须得重启，这是为什么？
+      work_process 2       ，指定工作进程数量。修改了此项配置后，使用reload命令不能使修改生效，必须得重启，这是为什么？
+      daemon on|off        ，指定nginx是否以守护(后台)进程启动，默认为on，如果为off，则关闭窗口就相当于停止了nginx服务
+      pid file             ，指定存储master进程id的文件路径
+      include xx.conf      ，引入配置文件内容(可提取公共内容存放到单独一个文件，然后引入)，可配置在任何地方
+      error_log file [日志级别]，指定错误日志存储路径、日志级别
+
 
 
 

@@ -55,7 +55,7 @@
                作为挂载点，会造成系统异常甚至崩溃，挂载点最好是新建的空目录。
 
 
-          将设备“/dev/sr0”挂载到挂载点/mnt/cdrom
+          将设备“/dev/sr0”挂载到挂载点/mnt/cdrom，/dev/sr0为设备文件名
           mount /dev/sr0 /mnt/cdrom
 
           卸载
@@ -129,6 +129,18 @@
            locate: can not stat () `/var/lib/mlocate/mlocate.db': No such file or directory
 
            locate redis.conf
+
+   12.执行以下命令查看操作系统版本
+      uname -a
+
+      输出内容如下，3.10.0-957.el7.x86_64就是版本号信息
+      Linux dev88 3.10.0-957.el7.x86_64 #1 SMP Thu Nov 8 23:39:32 UTC 2018 x86_64 x86_64 x86_64 GNU/Linux
+
+   13.关闭linux的安全子系统(学习时会省掉很多配置)，将config文件中的SELINUX设置为disabled
+      vim /etc/selinux/config
+
+   14.读取文件中的内容并作为命令的输入，nginx.pid文件中的内容为master进程id
+      kill -HUP `more /usr/local/nginx/logs/nginx.pid`
 
 
 
