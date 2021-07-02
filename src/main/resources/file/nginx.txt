@@ -100,14 +100,33 @@
              make upgrade
 
      13.检测nginx的配置文件是否有语法错误
-        ./nginx -t   正常时会输出成功信息
+        ./nginx -t -c ./conf/nginx.conf 正常时会输出成功信息(默认配置文件为/usr/local/nginx/nginx/nginx.conf)
         ./nginx -T   正常时会输出成功信息，还会输出文件的内容
 
      14.进程模型
         一个master进程对应多个work进程，master进程用于管理work进程，work进程用于接收并处理用户请求
 
+     15.安装及测试(源码安装方式-配置、编译、安装)
+        15.1前置依赖安装
+            yum install pcre-devel
+            yum install zlib zlib-devel
+        15.2配置，根目录下执行以下命令(此处指定了文件安装目录及配置文件，如果不指定conf-path，则make install时会提示nginx.conf已存在。
+                 如果不指定with-http_ssl_module，则配置proxy_pass转发到某个https地址时会报错)
+           ./configure --prefix=/usr/wjx/nginx-1.12.2 --conf-path=/usr/local/nginx/nginx.conf --with-http_ssl_module
+        15.3编译，根目录下执行以下命令
+            make
+        15.4安装，根目录下执行以下命令
+            make install
+        15.5启动(监听端口不要冲突)，根目录下执行以下命令
+            ./sbin/nginx -c /usr/wjx/nginx-1.12.2/conf/nginx.conf
+        15.6访问，默认会访问/html/index.html文件
+            http://192.168.1.88:90/
+        15.7配置代理后再访问，会跳转到proxy_pass指定的地址
+            proxy_pass http://nexus.lihvip.com/#browse/search/;
+
+
 二、配置文件nginx.conf
-   15.全局块指令
+   16.全局块指令
       user 用户名           ，修改work进程的所属用户信息(默认用户为nobody)，权限控制更加精细、安全
       master_process on|off，指定是否开启工作进程。修改了此项配置后，使用reload命令不能使修改生效，必须得重启，这是为什么？
       work_process 2       ，指定工作进程数量。修改了此项配置后，使用reload命令不能使修改生效，必须得重启，这是为什么？
@@ -116,6 +135,13 @@
       include xx.conf      ，引入配置文件内容(可提取公共内容存放到单独一个文件，然后引入)，可配置在任何地方
       error_log file [日志级别]，指定错误日志存储路径、日志级别
 
+
+      events块
+      accept_mutex on|off ，设置网络连接序列化，设置为on，能解决“惊群”问题。惊群效应：客户端来了一个请求，但nginx同时唤醒了所有的
+                             work进程，来争抢处理这个请求，会影响性能。设置为on后，一个一个的唤醒work进程来处理请求
+      multi_accept on|off ，设置单个work进程是否能同时接收多个网络连接，默认为off，建议设置on
+      worker_connections 5，设置单个work进程能接收的最大网络连接数量，默认为1024。最大不能超过操作系统能打开的最大文件句柄数量
+      use select          ，设置处理请求的事件模型，默认值与操作系统有关，linux内核2.6以上才支持epoll
 
 
 
