@@ -1,4 +1,4 @@
-rocketmq双主双主集群架构搭建+客户端例子测试跑通(一台windows服务器、一台linux服务器)
+rocketmq双主双从集群架构搭建+客户端例子测试跑通(一台windows服务器、一台linux服务器)
 
 1.启动nameserver
 nohup sh mqnamesrv &

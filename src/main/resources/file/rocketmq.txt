@@ -1,0 +1,342 @@
+一、安装启动测试，rocketmq需要依赖java环境(需要安装jdk)
+       1.官网下载rocket，下载地址如下，此例子下载的是二进制版本(rocketmq-all-4.4.0-bin-release.zip)
+         https://rocketmq.apache.org/dowloading/releases/
+       2.使用rz命令上传安装包至192.168.1.88linux服务器的/usr/wjx目录
+       3.解压安装包
+         unzip rocketmq-all-4.4.0-bin-release.zip
+       4.启动nameserver，默认端口为9876(rocketmq的bin目录下执行以下命令，可能会因没有权限写入nohup.out文件而报错nohup: ignoring input and appending output to ‘nohup.out’，可以不用理会，直接执行其他命令)
+         nohup sh ./mqnamesrv &
+
+         查看nameserver启动日志文件(/root/logs/rocketmqlogs/namesrv.log)
+         4.1在linux服务器上通过命令找到文件并查看
+         4.2在windows上的Notepad++安装NppFTP插件查看
+            打开NotePad++ ->插件->插件管理->搜索NppFTP->勾选、安装->设置(点击齿轮状图标)->Profile setting->Connection面板配置
+            连接linux服务器的信息->点击(第一个)连接的图标以连接linux服务器->成功后会出linux服务器的目录->找到对应的文件并查看
+       5.启动broker并指定连接nameserver的信息(日志文件路径/root/logs/rocketmqlogs/broker.log)
+         nohup sh mqbroker -n localhost:9876 &
+
+       6.启动问题，rocketmq默认需要较大的内存，使用默认配置启动不成功(/usr/wjx/rocketmq-all-4.4.0-bin-release/bin/nohup.out文件中会显示错误信息)，
+                  需要修改bin目录下的两个配置文件，将需要的内存值改小一点(root用户才有权限修改)才能启动成功。修改后，两个都启动成功，可使用jps命令查看进程。
+         停止nameserver命令 sh mqshutdown namesrv或mqshutdown namesrv
+         停止broker命令     sh mqshutdown broker或mqshutdown broker
+
+         runbroker.sh文件中的默认配置项 JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g -Xmn4g"
+                          修改后的配置 JAVA_OPT="${JAVA_OPT} -server -Xms256m -Xmx256m -Xmn128m"
+
+                            默认配置项 JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=15g"
+                        修改后的配置项 JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=512m"
+
+         runserver.sh文件中的默认配置项 JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -Xmn2g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
+                          修改后的配置 JAVA_OPT="${JAVA_OPT} -server -Xms256m -Xmx256m -Xmn128m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
+
+       7.测试发送、消费。开启两个窗口，分别执行以下两部分命令
+         第一个窗口
+           设置环境变量
+           export NAMESRV_ADDR=localhost:9876
+
+           使用安装包的demo发送消息
+           sh ./tools.sh org.apache.rocketmq.example.quickstart.Producer
+
+         第二个窗口
+           设置环境变量
+           export NAMESRV_ADDR=localhost:9876
+
+           使用安装包的demo消费消息
+           sh ./tools.sh org.apache.rocketmq.example.quickstart.Consumer
+
+二、基础及各种概念
+    1.各种角色
+      Producer(消息生产者)、Consumer(消息消费者)、NameServer(管理broker)、Broker(暂存和传输消息)、Topic(区分消息的种类)、Message Queue(相当于Topic的分区，用于并行发送和接收消息)
+    2.集群特点
+      NameServer几乎是无状态的节点，可集群部署，节点之间无任何信息同步
+      Broker分主、从，主和从有相同的BrokerName、不同的BrokerId，BrokerId为0表示主，非0表示从。主也可以集群部署，每一个Broker(包括从)都与NameServer建立长连接，定时注册topic到
+            所有的NameServer
+      Porducer完全是无状态的，可集群部署。与NameServer集群中随机一个建立长连接，定期从NameServer中获取Topic路由信息，定时向主发送心跳
+      Consumer完全是无状态的，可集群部署。与NameServer集群中随机一个建立长连接，定期从NameServer中获取Topic路由信息。向主和从建立长连接，并且定时向主和从发送心跳。
+              可以向主订阅，也可向从订阅，由Broker配置决定。
+    3.Broker架构模式
+      3.1单Master模式，有单机风险
+      3.2多Master模式，配置简单，无单个Master宕机风险。但单个Master宕机期间，这台机器上未被消费的消息在恢复之前不可订阅，消息实时性会受到影响。
+      3.3多Master多Slave模式(异步)，多对Master-Slave，Master与Slave采用异步复制方式，会有短暂延迟(毫秒级)。
+         实时性不会受到影响，即使Master宕机，还可以从Slave消费消息。在Master宕机且磁盘损坏的情况下，会丢失少量的消息。
+      3.4多Master多Slave模式(同步)，多对Master-Slave， 采用同步双写模式，Master收到消息并同步到Slave时，才响应成功到生产者。
+
+三、双主-双从同步双写集群搭建
+    1.两台linux服务器(192.168.1.88、192.168.1.248)
+      192.168.1.248服务器的准备
+      1.1rocketmq的安装启动同第一步中的操作步骤
+      1.2java命令不能使用，所以安装(查看版本需要 java -version)
+         yum install -y java
+      1.3不能使用jps命令，所以重新读取并执行一下配置文件(关闭窗口后失效，每次要重新执行一次)
+         source /etc/profile
+    2.配置hosts文件(2-7步两台服务器都要做)
+        #nameserver
+        192.168.1.88  rocketmq-nameserver1
+        192.168.1.248 rocketmq-nameserver2
+
+        #broker
+        192.168.1.88  rocketmq-master1
+        192.168.1.88  rocketmq-salve2
+        192.168.1.248 rocketmq-master2
+        192.168.1.248 rocketmq-salve1
+    3.重启网卡
+        systemctl restart network
+    4.开放端口(两台服务器本身都已关闭防火墙，以下命令执行会报错提示)
+      开放nameserver默认端口
+        firewall-cmd --remove-port=9876/tcp --permanent
+      开放master默认端口
+        firewall-cmd --remove-port=10911/tcp --permanent
+      开放salve默认端口
+        firewall-cmd --remove-port=11011/tcp --permanent
+      重启防火墙
+        firewall-cmd --reload
+    5.配置/etc/profile文件环境变量(192.168.1.88之前有配置吧，此处仅仅修改了ROCKETMQ_HOME，192.168.1.248都要配置)
+        export ROCKETMQ_HOME=/usr/wjx/rocketmq-all-4.4.0-bin-release
+        export PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin:$ROCKETMQ_HOME/bin
+        export JAVA_HOME JRE_HOME ROCKETMQ_HOME  CLASS_PATH PATH
+    6.使文件修改立刻生效
+       source /etc/profile
+    7.创建消息存储路径
+       mkdir /usr/wjx/rocketmq-all-4.4.0-bin-release/store
+       mkdir /usr/wjx/rocketmq-all-4.4.0-bin-release/store/commitlog
+       mkdir /usr/wjx/rocketmq-all-4.4.0-bin-release/store/consumequeue
+       mkdir /usr/wjx/rocketmq-all-4.4.0-bin-release/store/index
+
+    8.配置Broker
+      1.192.168.1.88服务器/usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/broker-a.properties
+        #集群名字
+        brokerClusterName=rocketmq-cluster
+        #不同的配置文件填写的不一样
+        brokerName=broker-a
+        #值为0表示Master，大于0表示Slave
+        brokerId=0
+        #nameserver地址，多个用分号分隔
+        namesrvAddr=rocketmq-nameserver1:9876;rocketmq-nameserver2:9876
+        #发送消息时，自动创建服务器不存在的Topic数量
+        defaultTopicQueueNums=4
+        #是否允许自动创建Topic，建议线下开启，线上关闭
+        autoCreateTopicEnable=true
+        #是否允许自动创建订阅组，建议线下开启，线上关闭
+        autoCreateSubscriptionGroup=true
+        #Broker对外服务的监听端口
+        listenPort=10911
+        #删除文件时间点，默认零晨4点
+        deleteWhen=04
+        #文件保留时间，默认48小时
+        fileReservedTime=120
+        #commitlog每个文件大小，默认1G
+        mapedFilwSizeCommitLog=1073741824
+        #ConsumeQueue每个文件存储条数为三十万条，根据业务调整
+        mapedFileSizeConsumeQueue=300000
+        #检测物理文件磁盘空间
+        diskMaxUsedSpaceRatio=88
+        #存储根路径
+        storePathRootDir=/usr/wjx/rocketmq-all-4.4.0-bin-release/store
+        #commitLog存储路径
+        storePathCommitLog=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/commitlog
+        #消费队列存储路径
+        storePathConsumeQueue=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/consumequeue
+        #消费锁引存储路径
+        storePathIndex=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/index
+        #checkpoint文件存储路径
+        #storeCheckpoint=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/checkpoint
+        #abort文件存储路径
+        #abortFile=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/abort
+        #限制的消息大小
+        maxMessageSize=65535
+        #Broker角色
+        #  ASYNC_MASTER 异步复制Master
+        #  SYNC_MASTER 同步双写Master
+        #  SLAVE
+        brokerRole=SYNC_MASTER
+        #刷盘方式
+        # ASYNC_FLUSH
+        # SYNC_FLUSH
+        flushDiskType=SYNC_FLUSH
+
+      2.192.168.1.88服务器/usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/roker-b-s.properties
+        #集群名字
+        brokerClusterName=rocketmq-cluster
+        #不同的配置文件填写的不一样
+        brokerName=broker-b
+        #值为0表示Master，大于0表示Slave
+        brokerId=1
+        #nameserver地址，多个用分号分隔
+        namesrvAddr=rocketmq-nameserver1:9876;rocketmq-nameserver2:9876
+        #发送消息时，自动创建服务器不存在的Topic数量
+        defaultTopicQueueNums=4
+        #是否允许自动创建Topic，建议线下开启，线上关闭
+        autoCreateTopicEnable=true
+        #是否允许自动创建订阅组，建议线下开启，线上关闭
+        autoCreateSubscriptionGroup=true
+        #Broker对外服务的监听端口
+        listenPort=11011
+        #删除文件时间点，默认零晨4点
+        deleteWhen=04
+        #文件保留时间，默认48小时
+        fileReservedTime=120
+        #commitlog每个文件大小，默认1G
+        mapedFilwSizeCommitLog=1073741824
+        #ConsumeQueue每个文件存储条数为三十万条，根据业务调整
+        mapedFileSizeConsumeQueue=300000
+        #检测物理文件磁盘空间
+        diskMaxUsedSpaceRatio=88
+        #存储根路径
+        storePathRootDir=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s
+        #commitLog存储路径
+        storePathCommitLog=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/commitlog
+        #消费队列存储路径
+        storePathConsumeQueue=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/consumequeue
+        #消费锁引存储路径
+        storePathIndex=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/index
+        #checkpoint文件存储路径
+        #storeCheckpoint=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/checkpoint
+        #abort文件存储路径
+        #abortFile=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/abort
+        #限制的消息大小
+        maxMessageSize=65535
+        #Broker角色
+        #  ASYNC_MASTER 异步复制Master
+        #  SYNC_MASTER 同步双写Master
+        #  SLAVE       从Broker
+        brokerRole=SLAVE
+        #刷盘方式
+        # ASYNC_FLUSH 异步刷盘
+        # SYNC_FLUSH 同步刷盘
+        flushDiskType=ASYNC_FLUSH
+
+    3.192.168.1.248服务器/usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/broker-b.properties
+      #集群名字
+      brokerClusterName=rocketmq-cluster
+      #不同的配置文件填写的不一样
+      brokerName=broker-b
+      #值为0表示Master，大于0表示Slave
+      brokerId=1
+      #nameserver地址，多个用分号分隔
+      namesrvAddr=rocketmq-nameserver1:9876;rocketmq-nameserver2:9876
+      #发送消息时，自动创建服务器不存在的Topic数量
+      defaultTopicQueueNums=4
+      #是否允许自动创建Topic，建议线下开启，线上关闭
+      autoCreateTopicEnable=true
+      #是否允许自动创建订阅组，建议线下开启，线上关闭
+      autoCreateSubscriptionGroup=true
+      #Broker对外服务的监听端口
+      listenPort=10911
+      #删除文件时间点，默认零晨4点
+      deleteWhen=04
+      #文件保留时间，默认48小时
+      fileReservedTime=120
+      #commitlog每个文件大小，默认1G
+      mapedFilwSizeCommitLog=1073741824
+      #ConsumeQueue每个文件存储条数为三十万条，根据业务调整
+      mapedFileSizeConsumeQueue=300000
+      #检测物理文件磁盘空间
+      diskMaxUsedSpaceRatio=88
+      #存储根路径
+      storePathRootDir=/usr/wjx/rocketmq-all-4.4.0-bin-release/store
+      #commitLog存储路径
+      storePathCommitLog=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/commitlog
+      #消费队列存储路径
+      storePathConsumeQueue=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/consumequeue
+      #消费锁引存储路径
+      storePathIndex=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/index
+      #checkpoint文件存储路径
+      #storeCheckpoint=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/checkpoint
+      #abort文件存储路径
+      #abortFile=/usr/wjx/rocketmq-all-4.4.0-bin-release/store/abort
+      #限制的消息大小
+      maxMessageSize=65535
+      #Broker角色
+      #  ASYNC_MASTER 异步复制Master
+      #  SYNC_MASTER 同步双写Master
+      #  SLAVE
+      brokerRole=SYNC_MASTER
+      #刷盘方式
+      # ASYNC_FLUSH
+      # SYNC_FLUSH
+      flushDiskType=SYNC_FLUSH
+
+    4.192.168.1.248服务器/usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/roker-a-s.properties
+      #集群名字
+      brokerClusterName=rocketmq-cluster
+      #不同的配置文件填写的不一样
+      brokerName=broker-a
+      #值为0表示Master，大于0表示Slave
+      brokerId=1
+      #nameserver地址，多个用分号分隔
+      namesrvAddr=rocketmq-nameserver1:9876;rocketmq-nameserver2:9876
+      #发送消息时，自动创建服务器不存在的Topic数量
+      defaultTopicQueueNums=4
+      #是否允许自动创建Topic，建议线下开启，线上关闭
+      autoCreateTopicEnable=true
+      #是否允许自动创建订阅组，建议线下开启，线上关闭
+      autoCreateSubscriptionGroup=true
+      #Broker对外服务的监听端口
+      listenPort=11011
+      #删除文件时间点，默认零晨4点
+      deleteWhen=04
+      #文件保留时间，默认48小时
+      fileReservedTime=120
+      #commitlog每个文件大小，默认1G
+      mapedFilwSizeCommitLog=1073741824
+      #ConsumeQueue每个文件存储条数为三十万条，根据业务调整
+      mapedFileSizeConsumeQueue=300000
+      #检测物理文件磁盘空间
+      diskMaxUsedSpaceRatio=88
+      #存储根路径
+      storePathRootDir=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s
+      #commitLog存储路径
+      storePathCommitLog=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/commitlog
+      #消费队列存储路径
+      storePathConsumeQueue=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/consumequeue
+      #消费锁引存储路径
+      storePathIndex=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/index
+      #checkpoint文件存储路径
+      #storeCheckpoint=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/checkpoint
+      #abort文件存储路径
+      #abortFile=/usr/wjx/rocketmq-all-4.4.0-bin-release/store-s/abort
+      #限制的消息大小
+      maxMessageSize=65535
+      #Broker角色
+      #  ASYNC_MASTER 异步复制Master
+      #  SYNC_MASTER 同步双写Master
+      #  SLAVE       从Broker
+      brokerRole=SLAVE
+      #刷盘方式
+      # ASYNC_FLUSH 异步刷盘
+      # SYNC_FLUSH 同步刷盘
+      flushDiskType=ASYNC_FLUSH
+
+    9.启动集群
+      1.两台服务器分别执行以下命令，启动nameserver
+        nohup sh ./mqnamesrv &
+      2.192.168.1.88执行以下命令启动对应的Broker
+        nohup sh mqbroker -c /usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/broker-a.properties &
+        nohup sh mqbroker -c /usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/broker-b-s.properties &
+
+        192.168.1.248执行以下命令启动对应的Broker
+        nohup sh mqbroker -c /usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/broker-b.properties &
+        nohup sh mqbroker -c /usr/wjx/rocketmq-all-4.4.0-bin-release/conf/2m-2s-sync/broker-a-s.properties &
+
+
+       启动成功后， /root/logs/rocketmqlogs/broker.log文件中会定时不断的输出broker注册到nameserver的日志信息，即保持心跳
+
+    10.启动集群遇到的问题
+       1.启动Broker不成功，且没有任何提示
+         原因：broker配置文件中不能有storeCheckpoint和abortFile两个配置，这两个是rocketmq自动生成的文件，不是目录！不是目录！不是目录！
+
+
+    11.集群命令管理工具mqadmin
+       updateTopic 创建/更新Topic配置
+       deleteTopic 删除Topic配置
+
+    12集群图形化管理工具rocketmq-console，是rocketmq提供的扩展插件
+      12.1下载地址https://github.com/apache/rocketmq-externals
+          下载ZIP文件非常慢，直接git clone到本地https://github.com/apache/rocketmq-externals.git
+      12.2克隆完成后，找到rocketmq-console项目，设置application.properties配置文件中的rocketmq.config.namesrvAddr配置项的值为nameserver的地址
+          rocketmq.config.namesrvAddr=192.168.1.88:9876;192.168.1.248:9876
+      12.3执行以下命令将rocketmq-console打成jar包
+          mvn clean package -Dmaven.test.skip=true
+      12.4上传jar包至192.168.1.88服务器并启动
+          nohup java -jar rocketmq-console-ng-2.0.0.jar &
+      12.5访问http://192.168.1.88:8080

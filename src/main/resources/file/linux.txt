@@ -142,6 +142,20 @@
    14.读取文件中的内容并作为命令的输入，nginx.pid文件中的内容为master进程id
       kill -HUP `more /usr/local/nginx/logs/nginx.pid`
 
+   15.使用当前shell读取并执行文件中的内容，通常用于重新执行刚修改的初始化文件，使之立即生效，而不必注销并重新登录
+      source fileName
+
+   16.查看防火墙状态
+      systemctl status firewalld
+
+      输出以下内容则未开启防火墙(状态为dead)
+        firewalld.service - firewalld - dynamic firewall daemon
+           Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+           Active: inactive (dead)
+             Docs: man:firewalld(1)
+
+
+
 
 
 
