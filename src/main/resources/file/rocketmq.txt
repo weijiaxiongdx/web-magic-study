@@ -356,3 +356,15 @@
       12.5访问http://192.168.1.88:8080
 
     13.项目rocketmqCluster包下各种测试
+
+    14.rocketmq整合springboot并使用RocketMQTemplate测试
+       14.1pom.xml文件中引入依赖rocketmq-spring-boot-starter.2.0.3
+       14.2application.yml文件中配置以下信息
+             rocketmq:
+               name-server: 192.168.1.88:9876;192.168.1.248:9876
+               producer:
+                 group: rocketmq-springboot
+       14.3配置消息监听器类RocketMQMessageListener、启动整个服务
+       14.4测试类WebMagicStudyApplicationTests中注入RocketMQTemplate并发送消息
+       14.5第三步中的监听器会自动消费消息
+       14.6可在控制台http://192.168.1.88:8080/#/message查看消息

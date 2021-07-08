@@ -106,12 +106,17 @@
 			<version>2.7.0</version>
 		</dependency>
 
-		<dependency>
+		<!-- 该依赖与rocketmq-spring-boot-starter2.0.3有冲突，使用@RocketMQMessageListener时会报错，所以注释掉 -->
+		<!--<dependency>
 			<groupId>org.apache.rocketmq</groupId>
 			<artifactId>rocketmq-client</artifactId>
 			<version>4.4.0</version>
+		</dependency>-->
+		<dependency>
+			<groupId>org.apache.rocketmq</groupId>
+			<artifactId>rocketmq-spring-boot-starter</artifactId>
+			<version>2.0.3</version>
 		</dependency>
-
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>fastjson</artifactId>

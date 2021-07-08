@@ -16,7 +16,7 @@ public class Consumer {
     public static void main(String[] args) throws MQClientException {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("wjx-group");
         consumer.setNamesrvAddr("192.168.1.88:9876;192.168.1.248:9876");
-        consumer.subscribe("wjx-topic","user-tag-transaction-message2");
+        consumer.subscribe("wjx-topic","*");
 
         //不设置，默认为集群消费
         consumer.setMessageModel(MessageModel.BROADCASTING);

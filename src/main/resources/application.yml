@@ -39,3 +39,11 @@ wjx:
     - address2
     - address3
 
+rocketmq:
+  name-server: 192.168.1.88:9876;192.168.1.248:9876
+  producer:
+    group: rocketmq-springboot
+
+
+
+
