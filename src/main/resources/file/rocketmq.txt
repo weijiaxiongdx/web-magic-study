@@ -321,7 +321,7 @@
       # SYNC_FLUSH 同步刷盘
       flushDiskType=ASYNC_FLUSH
 
-    9.启动集群
+    9.启动集群(使用root用户，其它用户通过jps看不到之前root用户启动的实例)
       1.两台服务器分别执行以下命令，启动nameserver
         nohup sh ./mqnamesrv &
       2.192.168.1.88执行以下命令启动对应的Broker

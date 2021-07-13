@@ -153,6 +153,15 @@
             update wjx_test_copy set name = "天下第一" where id = 11000158 and @v_name := "天下第一";
             select @v_name;
     13.查询缓存在8.0版本已经删除了，因为查询缓存 缓存的是查询结果（与缓存执行计划不一样），另在增、删、改的时候又要清除缓存，反倒是影响性能
+    14.QPS、TPS的区别，吞吐量
+       QPS为query Per Second的缩写，指数据库每秒可以处理多少个请求(一般来说一个请求就是一条SQL语句)
+       TPS为Transaction Per Second的缩写，指数据库每秒处理的事务数量（每秒处理多少次事务的提交、回滚）
+       吞吐量：机器的磁盘存储每秒可以读写多少字节的数据量
+    15.CPU负载含义，以4核CPU为例
+       负载为0.15则一个核都没有用满
+       负载为1则其中一个核基本用满，其它三个核比较空闲
+       负载为4则4个核基本都用满了
+       负载为6则4个核基本都用满了，很多进程可能在等待CPU执行自己的任务
 
 
 六、mysql客户端/服务端通信协议
@@ -213,6 +222,110 @@
 
 十一、操作系统和硬件优化
    1.如果负担的起，增加内存是解决随机IO最好的办法
+
+十二、执行SQL语句的流程(以更新sql为例)
+     update tableName set name="zhangsan" where id =1
+     客户端通过数据库连接发送执行sql请求->mysql服务器开启线程接收请求并交给SQL接口组件处理->查询解析器解析sql（知道这个sql是做什么的）->查询优化器(怎么执行才算最优、生成执行计划)->
+     执行器(调用存储引擎接口执行 执行计划)->存储引擎会把id等于1的这条数据加载到存储引擎的缓冲池并加独占锁，然后写undo日志（直接把更改之前的数据写入到磁盘undo日志文件）->更新存储引擎缓冲池中id等于1的数据->
+     把更新后的数据存到redo日志缓冲区中(还没到磁盘)->提交事务时，根据刷盘策略将redo日志缓冲区中的数据存储到磁盘(同时binlog日志也会刷到磁盘，什么时候记录的？)->若MySQL的配置项innodb_flush_log_at_trx_commit的值为0，则不刷到磁盘。
+     若值为1，则直接刷到磁盘中的redo日志文件(存储引擎缓冲池中的数据刷到磁盘前，Mysql宕机，则可用此日志来恢复修改数据,建议设置为1，因为设置1时数据是不会丢失的，其它两种都存在数据丢失的情况)。
+     若值为2，则先把redo日志缓冲区中的数据刷到操作系统缓冲区，过一段时间再刷到磁盘中的redo日志文件->把本次更新的binlog日志文件的名字和更新binlog日志文件的位置都写到redo日志文件中，还会在
+     redo日志文件中写入commmit标记(有了此标记，事务才算提交成功，commit标记用于保持两个日志文件的数据一致性)->完成事务提交。
+
+     binlog日志刷盘策略：sync_binlog的值为0(也是默认值)时，写到操作系统缓冲区，为1时则直接写到磁盘。
+
+十三、数据库压测
+     1.sysbench工具
+     2.压测过程中查看各指标的负载情况
+       2.1使用top命令查看CPU、内存的负载情况
+       2.2使用dstat -d命令查看磁盘IO的负载情况，结果列表中的read和writ列，分别表示IO吞吐量每秒读取多少B的数据、每秒写入多少kb的数据（参照：普通的机械硬盘可以做到每秒上百MB的读写数量）
+           -dsk/total-
+            read  writ
+            454B   30k
+              0    12k
+
+          dstat -r命令，分别表示读IOPS和写IOPS，即随机磁盘每秒读、写多少次(参照：一般可以达到两三百)
+             --io/total-
+              read  writ
+             0.01  1.46
+                0     0
+
+          dstat -n命令，查看网卡的流量情况，每秒钟网卡接收到的流量、通过网卡发送出去的流量分别是多少(参照：千兆网卡，每秒总流量在100M左右)
+            -net/total-
+             recv  send
+               0     0
+              46k   26k
+
+十四、生产环境数据库的可视化监控平台搭建，基于Prometheus(采集和存储数据)+Grafana(展示数据)。可以用来监控Java系统、中间件系统。
+     1.下载包，以下两个分别是监控系统、采集数据库所在机器的CPU、内存、磁盘、网络等数据
+       wget http://cactifans.hi-www.com/prometheus/prometheus-2.14.0.linux-amd64.tar.gz
+       wget http://cactifans.hi-www.com/prometheus/node_exporter-0.18.0.linux-amd64.tar.gz
+
+       以下包用于采集mysql数据库自己的监控数据，比哪sql性能、连接数量之类
+       https://github.com/prometheus/mysqld_exporter/releases路径下载mysqld_exporter-0.13.0.linux-amd64.tar.gz并上传至linux服务器
+
+     2.解压包，wjx目录下创建目录prometheus-export-data、prometheus-export-root，然后分别执行以下命令
+       tar xvf prometheus-2.14.0.linux-amd64.tar.gz -C ./prometheus-export-data
+       tar xf node_exporter-0.18.0.linux-amd64.tar.gz -C ./prometheus-export-root
+       tar xf mysqld_exporter-0.13.0.linux-amd64.tar.gz -C ./prometheus-export-root
+
+     3.启动prometheus
+       ./prometheus --storage.tsdb.retention=30d &
+
+     4.浏览器访问prometheus
+       http://192.168.1.88:9090
+
+     5.下载、解压Grafana
+       wget https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana-4.6.3.linux-x64.tar.gz
+       tar xf grafana-4.6.3.linux-x64.tar.gz -C ./prometheus-export-data
+
+     6.启动Grafana，/usr/wjx/prometheus-export-data/grafana-4.6.3目录执行以下命令
+       ./bin/grafana-server &
+
+     7.浏览器访问Grafana，输入默认账号/密码(admin/admin)登录
+       http://192.168.1.88:3000
+
+       在config tab页签配置以下信息(其它使用默认信息)，Grafana就会自动从Prometheus里获取监控数据并展示
+       名字输入 Prometheus、类型选择Prometheus、URL输入http://127.0.0.1:9090
+
+     8.下载解压安装Grafana的仪表盘组件
+       https://github.com/percona/grafana-dashboards/archive/v1.6.1.tar.gz
+       tar xvf grafana-dashboards-1.6.1.tar.gz
+
+       /usr/wjx/grafana-dashboards-1.6.1目录下执行以下命令进行安装(会生成大量的json文件，对应各种仪表盘)
+       updatedb
+       locate json |grep dashboards/
+
+     9.在Grafana管理页面添加各种仪表盘(json文件，需要把linux服务器上的json文件下载到本地-通过WinScp等工具)，然后就能查看各种图表
+       单击左上角齿轮->Dashboards->Import->上传json文件
+
+     10.添加Prometheus对MySQL机器的监控
+        10.1解压和启动node_exporter(自动采集这台linux机器上的CPU、磁盘、内存、网络之类的各种监控数据)
+            tar xf node_exporter-0.18.0.linux-amd64.tar.gz
+
+            /usr/wjx/node_exporter-0.18.0.linux-amd64目录下执行以下命令启动node_exporter
+            nohup ./node_exporter &
+        10.2Prometheus加入对机器的监控
+            在/usr/wjx/prometheus-export-data/prometheus-2.14.0.linux-amd64目录下新增并配置host.yml文件（ClassPath目录下的host.yml文件）
+
+            接着Prometheus就会跟MySQL机器上部署的node_exporter进行通信，源源不断的获取到这台机器的监控数据，写入自己的时序数据库中进行存储。
+            接着我们就可以打开Grafana的页面，此时你就可以看到这台机器的相关性能监控了。
+
+     11.启动mysqld_exporter组件(采集MySQL数据库自己的一些监控数据)
+        省略，详见第10个pdf文档
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
